@@ -22,7 +22,7 @@ from backend.schemas.auth import LoginRequest
 from backend.schemas.user import UserAccountResponse, UserCreate
 
 JWT_ALGORITHM = "HS256"
-REFRESH_TOKEN_COOKIE = "relay_refresh_token"
+REFRESH_TOKEN_COOKIE = "relay_refresh_token"  # nosec B105
 JWT_ISSUER = "relay"
 JWT_AUDIENCE = "relay-api"
 

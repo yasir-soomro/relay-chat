@@ -184,6 +184,29 @@ async def test_registration_maps_duplicate_account_to_conflict(
 
 
 @pytest.mark.asyncio
+async def test_validation_errors_do_not_echo_submitted_credentials(
+    api_client: AsyncClient,
+) -> None:
+    sensitive_value = "submitted-input-value-for-test"
+
+    response = await api_client.post(
+        "/auth/register",
+        json={
+            "email": "not-an-email",
+            "username": "x",
+            "display_name": "Relay User",
+            "password": [sensitive_value],
+        },
+    )
+
+    assert response.status_code == 422
+    assert sensitive_value not in response.text
+    assert all(
+        "input" not in item and "ctx" not in item for item in response.json()["detail"]
+    )
+
+
+@pytest.mark.asyncio
 async def test_login_uses_secure_httponly_strict_refresh_cookie(
     api_client: AsyncClient,
     api_settings: Settings,

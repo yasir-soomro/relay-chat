@@ -20,4 +20,5 @@ def test_authentication_and_user_routes_are_registered() -> None:
         "/connections/{other_user_id}/block",
         "/users/me",
         "/health",
+        "/health/ready",
     }.issubset(route_paths)

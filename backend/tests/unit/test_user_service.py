@@ -16,6 +16,7 @@ class InMemoryUserRepository:
     def __init__(self) -> None:
         self.users: dict[UUID, User] = {}
         self.read_count = 0
+        self.commit_count = 0
 
     async def get_by_id(self, user_id: UUID) -> User | None:
         self.read_count += 1
@@ -41,6 +42,9 @@ class InMemoryUserRepository:
             setattr(user, field, value)
         user.updated_at = datetime.now(UTC)
         return user
+
+    async def commit(self) -> None:
+        self.commit_count += 1
 
 
 def seed_user(
@@ -143,3 +147,4 @@ async def test_profile_update_changes_only_submitted_fields() -> None:
     assert updated.username == "relay_user"
     assert updated.display_name == "Relay User"
     assert updated.email == "relay.user@example.com"
+    assert repository.commit_count == 1

@@ -1,8 +1,9 @@
 # Relay
 
-Relay is a chat application. The backend is a FastAPI service using asynchronous
-SQLAlchemy and PostgreSQL; its source, migrations, tests, and setup instructions
-are in [`backend/`](./backend/).
+Relay is a private one-to-one messaging backend. The backend is built with
+FastAPI, asynchronous SQLAlchemy, PostgreSQL, and WebSockets. The backend
+source, tests, migrations, setup, API, and deployment documentation live in
+[`backend/`](./backend/).
 
 ## Backend quick start
 
@@ -14,29 +15,49 @@ uv sync
 Copy-Item .env.example .env
 ```
 
-Set the local database values in `backend/.env`, and replace
-`AUTH_JWT_SECRET` with a random value of at least 32 bytes. Keep `.env`
-private; do not commit real credentials.
-
-Start the API and run checks from `backend/`:
+Set the local PostgreSQL connection values in `backend/.env`, then run:
 
 ```powershell
+uv run alembic upgrade head
 uv run uvicorn backend.main:app --reload
-uv run pytest
-uv run ruff check src tests migrations
-uv run mypy src/backend
 ```
 
-The health endpoint is `GET /health`. Authentication endpoints and database
-migration instructions are documented in the [backend README](./backend/README.md).
+The app is available at `http://127.0.0.1:8000`; OpenAPI documentation is at
+`/docs`. Configure a random `AUTH_JWT_SECRET` of at least 32 bytes. Keep `.env`
+private and never commit real credentials.
 
-## Messaging and offline recovery
+## Backend modules
 
-Messages are persisted before delivery and remain available while recipients
-are offline. After reconnecting and restoring conversation subscriptions,
-clients recover missed messages through the paginated conversation-history
-REST endpoint; the server does not replay missed WebSocket events. Clients
-should follow the history cursor and deduplicate recovered messages by ID.
-Delivery and read acknowledgments update the global message status, which is
-synchronized to connected recipient devices. See the
-[backend README](./backend/README.md) for API details and limits.
+- **Authentication and users:** account registration, login, rotating refresh
+  tokens, session logout, and protected profile operations.
+- **Connections:** request/accept/reject/remove connections, blocking, and
+  unblocking.
+- **Conversations:** private one-to-one conversations for accepted,
+  unblocked connections.
+- **Messages:** persistent message history, cursor pagination, author-only
+  edit and soft-delete, and recipient delivery/read acknowledgments.
+- **WebSockets:** authenticated, participant-scoped real-time messaging with
+  multiple devices supported within one application process.
+- **Offline recovery:** messages remain persisted while a recipient is
+  offline; clients recover them through paginated REST history after
+  reconnecting. The server does not replay missed WebSocket messages.
+
+The backend README contains configuration, API routes, authorization behavior,
+test commands, migration procedures, production requirements, and known
+limitations.
+
+## Verification
+
+From `backend/`:
+
+```powershell
+uv run pytest --cov=backend --cov-report=term-missing:skip-covered
+uv run ruff check src tests migrations
+uv run ruff format --check src tests migrations
+uv run mypy src/backend
+uv run bandit -q -r src/backend
+uv run pip-audit --skip-editable
+```
+
+Repository integration tests require an isolated PostgreSQL database set in
+`TEST_DATABASE_URL`; see the [backend README](./backend/README.md).

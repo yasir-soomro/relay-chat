@@ -30,12 +30,66 @@ Copy `.env.example` to `.env` and set local PostgreSQL connection values. Set
 Configure `AUTH_ALLOWED_ORIGINS` as a comma-separated list of trusted browser
 origins. `APP_ENV=production` enables Secure refresh-token cookies.
 
+| Variable | Required | Default / notes |
+|---|---:|---|
+| `DB_USER` | Yes | PostgreSQL user |
+| `DB_PASSWORD` | Yes | Secret setting; never log or commit it |
+| `DB_HOST` | Yes | PostgreSQL host |
+| `DB_PORT` | Yes | Integer from 1 to 65535 |
+| `DB_NAME` | Yes | PostgreSQL database |
+| `DB_SSL` | No | `require`; production also accepts `verify-ca` and `verify-full` |
+| `AUTH_JWT_SECRET` | Auth required | At least 32 bytes; generate a random value |
+| `AUTH_ACCESS_TOKEN_EXPIRE_MINUTES` | No | `15`, positive integer |
+| `AUTH_REFRESH_TOKEN_EXPIRE_DAYS` | No | `30`, positive integer |
+| `WS_AUTH_TIMEOUT_SECONDS` | No | `10`, positive integer |
+| `APP_ENV` | No | `development`; use `production` for deployments |
+| `AUTH_ALLOWED_ORIGINS` | No | `http://localhost:5173`; comma-separated origins |
+| `CONNECTION_REQUEST_COOLDOWN_SECONDS` | No | Unset until the cooldown decision is approved |
+
+Settings are read from the process environment and `backend/.env`; environment
+variables override the file. Production startup requires nonempty database
+identity fields/password, a sufficiently long JWT secret, encrypted DB
+transport, and explicit HTTPS browser origins without paths or localhost.
+
 ```powershell
 uv sync
 uv run uvicorn backend.main:app --reload
 ```
 
-The health endpoint is `GET /health`. Run tests and quality checks with:
+`GET /health` is a liveness check and retains its existing response contract.
+Use `GET /health/ready` as the deployment readiness probe; it executes a
+database check and returns `503` without connection details when PostgreSQL is
+unavailable. The application validates configuration at startup, emits
+structured JSON logs, and disposes its SQLAlchemy engine during graceful
+shutdown.
+
+## Production deployment
+
+Set environment variables through the deployment platform's secret/config
+store; do not bake credentials into images or commit `.env`. At minimum,
+configure `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`,
+`DB_SSL=require` (or a verifying SSL mode), a random `AUTH_JWT_SECRET` of at
+least 32 bytes, `APP_ENV=production`, and explicit `AUTH_ALLOWED_ORIGINS`
+values using HTTPS origins. Production startup rejects placeholder-strength
+JWT secrets, empty database passwords, SSL modes that permit plaintext, and
+wildcard, localhost, or non-HTTPS browser origins. `APP_ENV=production`
+enables Secure refresh-token cookies.
+
+Apply and verify Alembic migrations as a separate deployment step before
+serving traffic. Route readiness checks through `/health/ready`, while
+orchestrators can use `/health` for liveness. WebSocket connections are held
+in process memory: run one application process/instance unless coordinated
+multi-instance support is separately approved and implemented.
+
+`AUTH_ALLOWED_ORIGINS` is enforced on login, refresh, and logout endpoints.
+General browser CORS policy and application rate limits/abuse controls are
+not configured: their policies remain open in the Backend Specification.
+Until approved, deploy behind a same-origin frontend/reverse proxy and apply
+any perimeter controls at the hosting layer without treating them as
+application-level guarantees. The app does not set a maximum HTTP message-body
+size; configure an appropriate limit at the trusted ingress.
+
+Run tests and quality checks with:
 
 ```powershell
 uv run pytest
@@ -52,7 +106,9 @@ The REST API supports registration and email/password login. Access tokens
 expire after 15 minutes by default. Login and refresh issue rotating opaque
 refresh tokens in a Secure-as-configured, HttpOnly, SameSite=Strict cookie
 scoped to `/auth`. Login, refresh, and logout require a matching `Origin`
-header.
+header. REST APIs derive the acting user from the verified bearer token;
+request schemas reject unknown fields, and validation responses omit submitted
+input values.
 
 ```text
 POST /auth/register
@@ -64,6 +120,18 @@ GET  /auth/me
 
 Only refresh-token hashes are stored. Reuse of a rotated token revokes its
 session. Password recovery and email verification are not implemented.
+
+## Users and profiles
+
+The authenticated account endpoints return account fields only to the owner.
+Public profile responses omit email and credentials; either-direction blocks
+hide a profile. Profile updates are owner-only.
+
+```text
+GET   /users/me
+PATCH /users/me
+GET   /users/{user_id}
+```
 
 ## Connections and blocking
 
@@ -144,6 +212,11 @@ opaque and can be passed to retrieve the next page. Clients should fetch until
 overlapping recovery scans. Batch read and delivery acknowledgments accept up
 to 100 message IDs in one conversation.
 
+Only conversation participants can retrieve history or individual messages.
+Only the sender can edit or soft-delete a message. Only the recipient can
+acknowledge delivery or reading; the sender's device cannot advance its own
+message status. A batch acknowledgment is validated atomically.
+
 ## WebSocket messaging
 
 Clients connect to `/ws`, then send an `auth` event containing an access token
@@ -154,6 +227,8 @@ fresh authentication and clients resubscribe to conversations.
 Supported events are `subscribe`, `unsubscribe`, `message.send`,
 `message.delivery_ack`, `message.delivery_ack_batch`, and `message.read_ack`.
 Batch delivery and read acknowledgments accept up to 100 unique message IDs.
+Every inbound event rejects unknown fields. `auth` is accepted only as the
+first frame; reconnecting requires authentication and subscription restoration.
 Each send requires a
 `client_message_id` UUID; retries with the same sender, conversation, and key
 return the original message without a duplicate incoming event. WebSocket

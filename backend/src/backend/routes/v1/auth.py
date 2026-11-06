@@ -9,6 +9,7 @@ from backend.core.security import CurrentUser, require_allowed_origin
 from backend.schemas.auth import LoginRequest, RegistrationResponse, TokenResponse
 from backend.schemas.user import UserAccountResponse, UserCreate
 from backend.services.auth_service import (
+    REFRESH_TOKEN_COOKIE,
     AuthenticationConfigurationError,
     AuthService,
     InvalidAuthenticationTokenError,
@@ -31,7 +32,7 @@ def _set_refresh_cookie(
         0,
     )
     response.set_cookie(
-        key="relay_refresh_token",
+        key=REFRESH_TOKEN_COOKIE,
         value=tokens.refresh_token,
         max_age=max_age,
         httponly=True,
@@ -43,7 +44,7 @@ def _set_refresh_cookie(
 
 def _clear_refresh_cookie(response: Response, settings: Settings) -> None:
     response.delete_cookie(
-        key="relay_refresh_token",
+        key=REFRESH_TOKEN_COOKIE,
         httponly=True,
         secure=settings.auth_cookie_secure,
         samesite="strict",
@@ -123,7 +124,7 @@ async def refresh(
 ) -> TokenResponse:
     try:
         issued_tokens, _ = await auth_service.refresh(
-            request.cookies.get("relay_refresh_token")
+            request.cookies.get(REFRESH_TOKEN_COOKIE)
         )
     except RefreshTokenReuseError:
         raise HTTPException(
