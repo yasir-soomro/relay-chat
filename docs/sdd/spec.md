@@ -129,10 +129,10 @@ No additional capabilities are committed by this specification. Examples not def
 | BR-003 | An accepted connection is required for users to send new private messages to one another. |
 | BR-004 | A rejected request may be retried only after a cooldown has elapsed. The cooldown duration and how it is measured are **Open**. |
 | BR-005 | Removing a connection does not erase its chat history, but neither former connection may send new messages to the other while the connection is removed. |
-| BR-006 | A block prevents messages in both directions and hides each blocked user's profile from the other. Whether blocking also changes existing connection records, chat visibility, history access, or pending requests is **Open**. |
-| BR-007 | A user may edit or delete only messages they authored. The visible result and history/audit behavior of an edit or deletion are **Open**. |
+| BR-006 | A block prevents messages in both directions and hides each blocked user's profile from the other. Blocking terminates an accepted connection and cancels pending requests between the users without deleting chat history. Unblocking restores profile visibility but does not restore connection status; a new request must be accepted before messaging resumes. |
+| BR-007 | A user may edit or delete only messages they authored. Editing replaces the current content without retaining prior versions. Deletion retains the message record as a visible deleted-message placeholder and clears its content; no deletion expiry is defined. |
 | BR-008 | Offline message delivery is supported. The rules for message expiry, retry limits, and the precise delivery event are **Open**. |
-| BR-009 | The supported message status labels are Sending, Sent, Delivered, and Read. The exact event definitions, transition rules, and how statuses aggregate across a recipient's multiple active devices are **Open**. |
+| BR-009 | Sending is a client-side transient state and is not persisted by the backend. A message successfully persisted by the backend has status Sent. A recipient-device delivery acknowledgment advances Sent to Delivered; a recipient read acknowledgment advances Sent or Delivered to Read, with a read acknowledgment also recording delivery if needed. Statuses do not regress, and repeated acknowledgments are idempotent. Exact per-device aggregation across a recipient's multiple active devices remains **Open**. |
 | BR-010 | A user may have multiple active devices. The exact cross-device behavior for sessions, message state, edits, deletions, and sign-out is **Open**. |
 
 ## 8. Core user workflows
@@ -166,7 +166,8 @@ These workflows describe required product outcomes. They do not prescribe screen
 1. A user blocks another user.
 2. The users can no longer message one another.
 3. Neither user's profile is visible to the other.
-4. The effects of a block on existing conversations, history, and connection state remain open as listed in BR-006.
+4. Any accepted connection is terminated, pending requests are cancelled, and chat history is retained.
+5. Unblocking restores profile visibility only; the users must establish a new accepted connection before messaging resumes.
 
 ## 9. Non-functional requirements
 
@@ -210,7 +211,7 @@ The following criteria provide externally observable checks for the V1 requireme
 | AC-008 | Given two users, when one blocks the other, then messaging is prevented in both directions and neither can view the other's profile. (FR-010, BR-006) |
 | AC-009 | Given a message authored by a user, when that author edits or deletes it, then the action applies to their message; another user cannot edit or delete it. (FR-012, FR-013, BR-007, NFR-012) |
 | AC-010 | Given a message sent while its recipient is offline, when the recipient is able to receive messages again, then Relay supports delivery of that message. (FR-014, BR-008) |
-| AC-011 | Given a message, Relay supports displaying each of Sending, Sent, Delivered, and Read where applicable. Exact transition triggers must await the decision in BR-009. (FR-015, BR-009) |
+| AC-011 | Given a message, Sending is transient; after persistence the message is Sent; recipient delivery acknowledgment advances it to Delivered, and recipient read acknowledgment advances it to Read without regression. Read acknowledgment also records delivery if needed. Per-device aggregation follows BR-009's remaining open decision. (FR-015, BR-009) |
 | AC-012 | Given a user with multiple active devices, Relay permits those devices to be active for the same user. Cross-device state behavior must await the decisions in BR-010. (FR-016, BR-010) |
 
 ## 12. Assumptions, constraints, and open decisions
@@ -233,12 +234,10 @@ The following criteria provide externally observable checks for the V1 requireme
 The following items require product decisions before dependent details can be finalized:
 
 1. The duration, start point, and measurement of the rejected-request cooldown (BR-004).
-2. The effect of blocking on existing connection records, pending requests, chat visibility, and history access (BR-006).
-3. What recipients see when a message is edited or deleted, and whether edits/deletions retain visible history (BR-007).
-4. Offline delivery guarantees, including expiry and retry behavior (BR-008).
-5. Exact definitions and transitions for Sending, Sent, Delivered, and Read, including multi-device aggregation (BR-009).
-6. Cross-device behavior for message state, profile and connection changes, edits, deletions, and sign-out (BR-010).
-7. Additional account lifecycle workflows beyond the approved backend REST authentication contract (for example, email verification or password recovery), which remain out of scope unless separately approved.
-8. Whether additional messaging capabilities or user-safety features are part of V1.
-9. Performance, availability, scale, accessibility, data retention, and compliance targets.
-10. User-facing content and notifications for connection and messaging events.
+2. Offline delivery guarantees, including expiry and retry behavior (BR-008).
+3. Exact definitions and transitions for Delivered and Read, including multi-device aggregation (BR-009).
+5. Cross-device behavior for message state, profile and connection changes, edits, deletions, and sign-out (BR-010).
+6. Additional account lifecycle workflows beyond the approved backend REST authentication contract (for example, email verification or password recovery), which remain out of scope unless separately approved.
+7. Whether additional messaging capabilities or user-safety features are part of V1.
+8. Performance, availability, scale, accessibility, data retention, and compliance targets.
+9. User-facing content and notifications for connection and messaging events.

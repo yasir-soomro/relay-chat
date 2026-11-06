@@ -1,16 +1,10 @@
-from functools import lru_cache
+from typing import Protocol
 from uuid import UUID
 
-from pwdlib import PasswordHash
-
 from backend.model.user import User
-from backend.repository.user_repository import (
-    UserRepositoryProtocol,
-    UserUniqueConflict,
-)
+from backend.repository.user_repository import UserUniqueConflict
 from backend.schemas.user import (
     UserAccountResponse,
-    UserCreate,
     UserProfileUpdate,
     UserPublicProfile,
 )
@@ -30,52 +24,49 @@ class UserAlreadyExistsError(Exception):
         super().__init__(f"User {field} already exists")
 
 
-@lru_cache
-def _password_hasher() -> PasswordHash:
-    return PasswordHash.recommended()
+class ProfileBlockChecker(Protocol):
+    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool: ...
+
+
+class UserProfileRepositoryProtocol(Protocol):
+    async def get_by_id(self, user_id: UUID) -> User | None: ...
+
+    async def username_exists(
+        self,
+        username: str,
+        *,
+        excluding_user_id: UUID | None = None,
+    ) -> bool: ...
+
+    async def update_profile(
+        self,
+        user: User,
+        fields: dict[str, str | None],
+    ) -> User: ...
+
+    async def commit(self) -> None: ...
 
 
 class UserService:
-    def __init__(self, repository: UserRepositoryProtocol) -> None:
+    def __init__(
+        self,
+        repository: UserProfileRepositoryProtocol,
+        block_checker: ProfileBlockChecker,
+    ) -> None:
         self._repository = repository
+        self._block_checker = block_checker
 
-    async def create_user(self, data: UserCreate) -> UserAccountResponse:
-        email = str(data.email).lower()
-        if await self._repository.email_exists(email):
-            raise UserAlreadyExistsError("email")
-        if await self._repository.username_exists(data.username):
-            raise UserAlreadyExistsError("username")
-
-        user = User(
-            email=email,
-            username=data.username,
-            display_name=data.display_name,
-            password_hash=_password_hasher().hash(data.password.get_secret_value()),
-            bio=data.bio,
-        )
-        try:
-            await self._repository.create(user)
-            await self._repository.commit()
-        except UserUniqueConflict as error:
-            raise UserAlreadyExistsError(error.field) from None
-        return UserAccountResponse.model_validate(user)
-
-    async def get_public_profile(self, user_id: UUID) -> UserPublicProfile:
+    async def get_public_profile(
+        self,
+        user_id: UUID,
+        requester_id: UUID,
+    ) -> UserPublicProfile:
+        if await self._block_checker.is_blocked_between(user_id, requester_id):
+            raise UserNotFoundError("User not found")
         user = await self._repository.get_by_id(user_id)
         if user is None:
             raise UserNotFoundError("User not found")
         return UserPublicProfile.model_validate(user)
-
-    async def get_account_profile(
-        self,
-        user_id: UUID,
-        authenticated_user_id: UUID,
-    ) -> UserAccountResponse:
-        self._ensure_owner(user_id, authenticated_user_id)
-        user = await self._repository.get_by_id(user_id)
-        if user is None:
-            raise UserNotFoundError("User not found")
-        return UserAccountResponse.model_validate(user)
 
     async def update_profile(
         self,

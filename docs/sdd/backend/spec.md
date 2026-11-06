@@ -33,15 +33,17 @@ Create and maintain this backend layout:
 
 ```text
 backend/
-├── app/
-│   ├── main.py
-│   ├── core/
-│   ├── model/
-│   ├── routes/
-│   ├── schemas/
-│   ├── services/
-│   ├── DB/
-│   └── repository/
+├── src/
+│   └── backend/
+│       ├── main.py
+│       ├── core/
+│       ├── model/
+│       ├── routes/
+│       │   └── v1/
+│       ├── schemas/
+│       ├── services/
+│       ├── DB/
+│       └── repository/
 │
 ├── migrations/
 ├── tests/
@@ -58,15 +60,15 @@ Responsibilities:
 
 | Path | Responsibility |
 |---|---|
-| `app/main.py` | Construct and configure the FastAPI application, register routes and shared exception handling, and expose the application entry point. Keep business behavior out of this module. |
-| `app/core/` | Cross-cutting application concerns such as settings/configuration, authentication and authorization dependencies, error handling, and logging setup. Keep modules cohesive; do not make this a general dumping ground. |
-| `app/model/` | Domain and persistence model definitions for the backend's data. Keep API request/response representations in `schemas/`. Whether a separate domain model and ORM model are needed is an open technical decision. |
-| `app/routes/` | REST route handlers and WebSocket connection/transport handlers. Parse/validate transport input, establish the caller context, invoke services, and translate service outcomes to transport responses. |
-| `app/schemas/` | Request, response, and WebSocket message data shapes, with boundary validation and serialization rules. Schemas must not perform database access or contain workflow logic. |
-| `app/services/` | Use-case orchestration and product business rules. Services call repositories through defined interfaces, coordinate operations, and raise or return explicit application outcomes. |
-| `app/DB/` | PostgreSQL connection/session lifecycle and shared database infrastructure. The exact client and session pattern are open. |
-| `app/repository/` | Persistence operations and queries. Repositories encapsulate database access and return data/results needed by services; they do not enforce route-specific behavior. |
-| `migrations/` | Ordered, reviewable database schema changes. The migration tool is an open decision. |
+| `src/backend/main.py` | Construct and configure the FastAPI application, register routes, manage application lifecycle, and expose the application object. Keep business behavior out of this module. |
+| `src/backend/core/` | Shared settings/configuration, authentication and authorization dependencies, and security helpers. Keep feature-specific errors with their services and transport mappings with routes. |
+| `src/backend/model/` | SQLAlchemy persistence models. Keep API request/response representations in `schemas/`. |
+| `src/backend/routes/` | Versioned REST route handlers and future WebSocket transport handlers. Parse/validate transport input, establish caller context, invoke services, and translate service outcomes to HTTP responses. |
+| `src/backend/schemas/` | Request, response, and WebSocket message data shapes, with boundary validation and serialization rules. Schemas must not perform database access or contain workflow logic. |
+| `src/backend/services/` | Use-case orchestration and product business rules. Services call repositories through defined interfaces, coordinate operations, and raise or return explicit application outcomes. |
+| `src/backend/DB/` | PostgreSQL engine, session lifecycle, declarative base, and shared database infrastructure. |
+| `src/backend/repository/` | Persistence operations and queries. Repositories encapsulate database access and return data/results needed by services; they do not enforce route-specific behavior. |
+| `migrations/` | Alembic-managed, ordered, reviewable database schema changes. |
 | `tests/unit/` | Fast tests of isolated service/domain behavior using controlled dependencies; do not require a live PostgreSQL database unless the test is explicitly an integration test. |
 | `tests/integration/` | Tests of repository/database behavior and cross-layer persistence using a real PostgreSQL test database. |
 | `tests/api/` | Tests of REST request/response behavior, validation, authentication/authorization outcomes, and integration with application services. |
@@ -74,7 +76,7 @@ Responsibilities:
 | `pyproject.toml` | Python project metadata, dependencies, and agreed tooling configuration. Keep dependency choices and version policies explicit and reviewable. |
 | `README.md` | Backend setup, configuration, migration, test, and run instructions, once the related technical decisions are made. |
 
-Add modules as needed within these directories, grouped by cohesive feature or concern. Preserve the required directory names and case, including `model/` and `DB/`.
+Add modules as needed within these directories, grouped by cohesive feature or concern. Preserve the required directory names and case, including `model/` and `DB/`. Keep user, authentication, and connection modules feature-specific within each layer; avoid duplicate workflows and oversized catch-all modules.
 
 ## 4. Layer responsibilities and dependency rules
 
@@ -112,7 +114,7 @@ Add modules as needed within these directories, grouped by cohesive feature or c
 
 ### Database infrastructure and migrations
 
-- Database session/connection creation, configuration, and lifecycle belong in `app/DB/`.
+- Database session/connection creation, configuration, and lifecycle belong in `src/backend/DB/`.
 - Repositories receive database access through explicit dependencies rather than creating independent global connections.
 - Schema changes must be represented by ordered migrations. Do not rely on application startup to silently mutate a production schema.
 - A migration must be reviewed with its affected models, repositories, and tests. Migration tool, rollback policy, and production migration procedure remain open.
@@ -146,8 +148,8 @@ This is a set of product concepts, not a prescribed schema. Table design, key st
 - Preserve chat history when a connection is removed (FR-009, BR-005).
 - Ensure that message sending cannot bypass accepted-connection and blocking rules, including when state changes concurrently (FR-011, BR-003, BR-006).
 - Coordinate multi-record operations so externally visible state does not represent a partially completed product action. Choose exact transaction boundaries with the data model and document them in implementation.
-- Do not delete history as a side effect of connection removal. The effect of blocking on existing history and conversations remains open (BR-006).
-- Do not invent expiry, retention, or deletion/audit semantics for messages; follow the open decisions in BR-007 and BR-008.
+- Do not delete history as a side effect of connection removal or blocking. Whether users may view existing conversation history while a block is active remains unspecified (BR-006).
+- Follow the approved edit/deletion behavior in BR-007. Do not invent message expiry or offline-delivery guarantees; those remain open under BR-008.
 
 ### Migrations and test data
 
@@ -202,14 +204,18 @@ The REST surface must support the product capabilities in the root specification
 
 ### WebSockets
 
-- Use WebSockets for real-time communication where appropriate to Relay's messaging requirements; preserve the same business rules and privacy boundaries as REST.
-- Authenticate a connection using an approved authentication mechanism before granting access to protected events or data.
-- Validate inbound messages against explicit schemas and authorize every event/action against its user and conversation context.
-- Keep WebSocket handlers focused on connection lifecycle and transport. Delegate message creation, edits/deletions, status changes, and connection eligibility to services.
-- Do not treat possession of a conversation or user identifier as authorization.
-- Ensure private events are delivered only to authorized participants and must not be exposed to unrelated users (NFR-002, NFR-007, NFR-010).
-- Support offline message delivery and multiple active devices as required by FR-014 and FR-016, but do not assume a broker, delivery guarantee, ordering guarantee, acknowledgement model, or status aggregation rule. Those are open decisions.
-- Define and document event names, payload schemas, error/close behavior, reconnection behavior, ordering, and multi-instance coordination before implementing those contracts.
+- WebSocket endpoint: `GET /ws` (WebSocket upgrade).
+- Accept a new socket without credentials, then require a JSON `auth` event as the first frame. Its `access_token` is validated by the existing JWT and active-session service; user identity comes only from the verified token. Never put tokens in the URL or accept a client-supplied user ID.
+- The authentication deadline is configured by the positive integer `WS_AUTH_TIMEOUT_SECONDS`, default `10`. Timeout, invalid credentials, revoked/expired sessions, and a non-auth first frame reject and close the connection.
+- Client events are `auth`, `subscribe`, `unsubscribe`, `message.send`, `message.delivery_ack`, and `message.read_ack`. Subscribe/unsubscribe events contain `conversation_id`. Sending also requires a UUID `client_message_id` and non-empty `content`. Delivery acknowledgment contains `conversation_id` and `message_id`; read acknowledgment contains `conversation_id` and 1–100 `message_ids`. Unknown fields are rejected.
+- Server events are `auth.ok`, `subscribed`, `unsubscribed`, `message.sent`, `message.received`, `message.status`, and `error`. Errors use `{ "type": "error", "code": "...", "detail": "..." }`. Authentication and protocol failures close the socket; message and permission failures return an error and keep it open.
+- A conversation can be subscribed to only by a participant. Existing participants retain subscription/history access after connection removal or blocking; the existing message service still rejects new sends unless the connection is accepted and unblocked. Message sending persists and commits before any broadcast.
+- `client_message_id` is unique per sender and conversation. Repeated sends with the same key return the original persisted message and do not rebroadcast it as a new incoming message. REST sends without a key retain their existing behavior.
+- `sent` means persisted. A recipient-owned device acknowledgment advances the message globally to `delivered` or `read`; sender-device acknowledgments do not. Status changes are sent to subscribed participant devices, and subscription sends current status records for the conversation. No per-device status is stored.
+- Each socket serializes its outbound events in FIFO order. There is no ordering guarantee across devices. Reconnects require fresh authentication and clients restore subscriptions by resubscribing, which revalidates participant access.
+- Messages remain persisted while recipients are offline. The server does not buffer or replay missed message events; clients recover messages using the REST history API. Subscription status synchronization sends statuses, not message content/history.
+- The connection manager is in-memory and supports multiple devices only within a single application process. Multi-instance coordination/brokering is not supported or selected.
+- Keep WebSocket handlers focused on connection lifecycle and transport. Delegate message persistence, status transitions, connection eligibility, and participant authorization to existing services. Private events are limited to authenticated participants (NFR-002, NFR-007, NFR-010).
 
 ### Cross-transport consistency
 
@@ -234,7 +240,9 @@ Service operations must:
 4. Coordinate persistence and transaction boundaries.
 5. Return explicit results for the route/transport layer to serialize.
 
-The root specification marks the rejected-request cooldown duration, block effects on existing conversations/history/requests, edit/deletion visibility, offline delivery guarantees, status transitions, and device synchronization as open. Services must not embed guessed values or behavior for these decisions.
+The root specification marks the rejected-request cooldown duration, offline delivery guarantees, and per-device status aggregation as open. Services must not embed guessed values or behavior for these decisions. Message statuses are persisted only as Sent, Delivered, or Read; Sending is client-side transient. A recipient delivery acknowledgment advances Sent to Delivered, and a recipient read acknowledgment advances Sent or Delivered to Read, recording delivery if needed. Statuses do not regress and repeated acknowledgments are idempotent. The approved BR-007 edit/deletion behavior is defined in the root specification.
+
+Connection records represent the current state for a canonical unordered user pair and are retained when a connection is removed. Directional block records are independent. Blocking cancels pending requests and marks an accepted connection removed while retaining any conversation/history data. Unblocking removes the block only; it does not restore the former connection. A new accepted request is required before messaging resumes. The retry cooldown has no default: rejected-request retries return an explicit configuration error until an approved `CONNECTION_REQUEST_COOLDOWN_SECONDS` value is configured.
 
 ## 9. Error handling, validation, and security
 
@@ -263,7 +271,7 @@ The root specification marks the rejected-request cooldown duration, block effec
 
 ### Logging
 
-- Configure application logging centrally through `app/core/`; avoid scattered ad hoc prints.
+- Configure shared application logging centrally through `src/backend/core/` if/when required; avoid scattered ad hoc prints.
 - Emit useful diagnostic context for failures and lifecycle events without logging secrets, credentials, access tokens, or private message content.
 - Keep logs useful for tracing an operation across route, service, and repository boundaries. Correlation identifiers and the logging format/transport are open technical decisions.
 - Do not catch and suppress broad exceptions. Handle errors at a boundary only when the failure can be translated, enriched safely, or recovered from according to an approved rule.
@@ -323,7 +331,7 @@ The following decisions must be recorded before implementing the affected contra
 | WebSocket authentication handshake, event names/payloads, acknowledgements, errors, reconnection, ordering, and delivery model | WebSocket routes, schemas, services | Must remain consistent with root decisions for delivery and statuses. |
 | Multi-instance WebSocket coordination or messaging infrastructure | WebSocket runtime and offline delivery | No broker or coordination technology is selected by this specification. |
 | Data model details, transaction boundaries, key strategy, indexing, and retention | Models, repositories, migrations | Preserve privacy, ownership, accepted-connection rules, and removed-connection history. |
-| Root product decisions: cooldown duration; block effects on existing state; edit/delete visibility; offline expiry/retry and guarantees; status semantics; cross-device synchronization | Services, APIs, persistence, tests | See the open decisions in Section 12 of the root specification. |
+| Root product decisions: cooldown duration; edit/delete visibility; offline expiry/retry and guarantees; status semantics; cross-device synchronization | Services, APIs, persistence, tests | See the open decisions in Section 12 of the root specification. |
 | Configuration and secret source; logging format/transport and correlation identifiers | Core, operations | Must not expose secrets or private message content. |
 | Test PostgreSQL provisioning/reset strategy; fixtures and migration use | Integration tests, developer setup, CI | Integration tests must use real PostgreSQL. |
 | Lint, formatting, typing, coverage, and CI tools and thresholds | `pyproject.toml`, CI | Select explicitly; no thresholds are implied here. |

@@ -12,7 +12,12 @@ from backend.core.security import get_current_user
 from backend.main import app
 from backend.model.user import User
 from backend.schemas.auth import LoginRequest
-from backend.schemas.user import UserAccountResponse, UserCreate, UserProfileUpdate
+from backend.schemas.user import (
+    UserAccountResponse,
+    UserCreate,
+    UserProfileUpdate,
+    UserPublicProfile,
+)
 from backend.services.auth_service import (
     AuthenticatedUser,
     InvalidAuthenticationTokenError,
@@ -91,6 +96,15 @@ class UserServiceStub:
     def __init__(self, account: User) -> None:
         self.account = account
         self.updated_ids: tuple[UUID, UUID] | None = None
+        self.profile_request: tuple[UUID, UUID] | None = None
+
+    async def get_public_profile(
+        self,
+        user_id: UUID,
+        requester_id: UUID,
+    ) -> UserPublicProfile:
+        self.profile_request = (user_id, requester_id)
+        return UserPublicProfile.model_validate(self.account)
 
     async def update_profile(
         self,
@@ -250,6 +264,39 @@ async def test_profile_update_uses_authenticated_user_id_and_hides_password_hash
     assert user_service.updated_ids == (account.id, account.id)
     assert response.json()["username"] == "updated_user"
     assert "password_hash" not in response.json()
+
+
+@pytest.mark.asyncio
+async def test_public_profile_route_uses_authenticated_viewer_and_public_schema(
+    api_client: AsyncClient,
+    account: User,
+) -> None:
+    viewer = User(
+        id=uuid4(),
+        email="viewer@example.com",
+        username="viewer_user",
+        display_name="Viewer",
+        password_hash="not-returned",
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    user_service = UserServiceStub(account)
+    app.dependency_overrides[get_current_user] = lambda: AuthenticatedUser(
+        user=viewer,
+        session_id=uuid4(),
+    )
+    app.dependency_overrides[get_user_service] = lambda: user_service
+
+    response = await api_client.get(f"/users/{account.id}")
+
+    assert response.status_code == 200
+    assert user_service.profile_request == (account.id, viewer.id)
+    assert response.json() == {
+        "id": str(account.id),
+        "username": account.username,
+        "display_name": account.display_name,
+        "bio": account.bio,
+    }
 
 
 @pytest.mark.asyncio

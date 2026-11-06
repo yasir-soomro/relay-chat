@@ -2,11 +2,19 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import Connection as DBConnection
 
 from backend.DB.base import Base
 from backend.DB.session import build_database_url, dispose_engine, get_engine
-from backend.model import AuthRefreshToken, AuthSession, User  # noqa: F401
+from backend.model import (  # noqa: F401
+    AuthRefreshToken,
+    AuthSession,
+    Connection,
+    Conversation,
+    Message,
+    User,
+    UserBlock,
+)
 
 config = context.config
 
@@ -18,7 +26,7 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=build_database_url().render_as_string(hide_password=False),
+        url=build_database_url().render_as_string(hide_password=True),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -28,7 +36,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def do_run_migrations(connection: Connection) -> None:
+def do_run_migrations(connection: DBConnection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,

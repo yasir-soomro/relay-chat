@@ -1,4 +1,5 @@
-from pydantic import SecretStr
+import pytest
+from pydantic import SecretStr, ValidationError
 
 from backend.core.config import Settings
 from backend.DB.session import build_database_url
@@ -18,6 +19,51 @@ def test_settings_validate_database_configuration() -> None:
     assert settings.db_password == SecretStr("test-password")
     assert settings.db_port == 5432
     assert settings.db_ssl == "require"
+    assert settings.ws_auth_timeout_seconds == 10
+
+
+@pytest.mark.parametrize("timeout", [0, -1])
+def test_settings_reject_nonpositive_websocket_auth_timeout(timeout: int) -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            db_user="relay-test",
+            db_password="test-password",
+            db_host="localhost",
+            db_port=5432,
+            db_name="relay-test",
+            ws_auth_timeout_seconds=timeout,
+        )
+
+
+def test_settings_load_websocket_auth_timeout_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WS_AUTH_TIMEOUT_SECONDS", "17")
+
+    settings = Settings(
+        db_user="relay-test",
+        db_password=SecretStr("test-password"),
+        db_host="localhost",
+        db_port=5432,
+        db_name="relay-test",
+    )
+
+    assert settings.ws_auth_timeout_seconds == 17
+
+
+def test_settings_reject_invalid_websocket_auth_timeout_environment_value(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WS_AUTH_TIMEOUT_SECONDS", "not-an-integer")
+
+    with pytest.raises(ValidationError):
+        Settings(
+            db_user="relay-test",
+            db_password="test-password",
+            db_host="localhost",
+            db_port=5432,
+            db_name="relay-test",
+        )
 
 
 def test_database_url_escapes_password_and_disables_prepared_cache() -> None:

@@ -2,13 +2,11 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import pytest
-from pwdlib import PasswordHash
 
 from backend.model.user import User
-from backend.repository.user_repository import UserUniqueConflict
-from backend.schemas.user import UserCreate, UserProfileUpdate
+from backend.schemas.user import UserProfileUpdate
 from backend.services.user_service import (
-    UserAlreadyExistsError,
+    UserNotFoundError,
     UserPermissionError,
     UserService,
 )
@@ -23,19 +21,6 @@ class InMemoryUserRepository:
         self.read_count += 1
         return self.users.get(user_id)
 
-    async def get_by_email(self, email: str) -> User | None:
-        return next(
-            (
-                user
-                for user in self.users.values()
-                if user.email.lower() == email.lower()
-            ),
-            None,
-        )
-
-    async def email_exists(self, email: str) -> bool:
-        return any(user.email.lower() == email.lower() for user in self.users.values())
-
     async def username_exists(
         self,
         username: str,
@@ -47,17 +32,6 @@ class InMemoryUserRepository:
             for user in self.users.values()
         )
 
-    async def create(self, user: User) -> User:
-        if await self.email_exists(user.email):
-            raise UserUniqueConflict("email")
-        if await self.username_exists(user.username):
-            raise UserUniqueConflict("username")
-        user.id = uuid4()
-        user.created_at = datetime.now(UTC)
-        user.updated_at = user.created_at
-        self.users[user.id] = user
-        return user
-
     async def update_profile(
         self,
         user: User,
@@ -68,62 +42,41 @@ class InMemoryUserRepository:
         user.updated_at = datetime.now(UTC)
         return user
 
-    async def commit(self) -> None:
-        return None
 
-
-def create_data(**overrides: object) -> UserCreate:
-    return UserCreate.model_validate(
-        {
-            "email": "Relay.User@example.com",
-            "username": "relay_user",
-            "display_name": "Relay User",
-            "password": "a-secure-password",
-            **overrides,
-        }
+def seed_user(
+    repository: InMemoryUserRepository,
+    *,
+    email: str = "relay.user@example.com",
+    username: str = "relay_user",
+    bio: str | None = None,
+) -> User:
+    now = datetime.now(UTC)
+    user = User(
+        id=uuid4(),
+        email=email,
+        username=username,
+        display_name="Relay User",
+        password_hash="test-only-hash",
+        bio=bio,
+        created_at=now,
+        updated_at=now,
     )
+    repository.users[user.id] = user
+    return user
+
+
+class NoBlockChecker:
+    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
+        return False
 
 
 @pytest.mark.asyncio
-async def test_create_user_hashes_password_with_argon2() -> None:
+async def test_only_owner_can_update_profile() -> None:
     repository = InMemoryUserRepository()
-    response = await UserService(repository).create_user(create_data())
-    stored_user = repository.users[response.id]
-
-    assert stored_user.password_hash.startswith("$argon2id$")
-    assert PasswordHash.recommended().verify(
-        "a-secure-password",
-        stored_user.password_hash,
-    )
-    assert response.email == "relay.user@example.com"
-
-
-@pytest.mark.asyncio
-async def test_create_user_rejects_normalized_email_and_username_duplicates() -> None:
-    repository = InMemoryUserRepository()
-    service = UserService(repository)
-    await service.create_user(create_data())
-
-    with pytest.raises(UserAlreadyExistsError) as email_error:
-        await service.create_user(create_data(email="RELAY.USER@example.com"))
-    assert email_error.value.field == "email"
-
-    with pytest.raises(UserAlreadyExistsError) as username_error:
-        await service.create_user(
-            create_data(email="another@example.com", username="relay_user")
-        )
-    assert username_error.value.field == "username"
-
-
-@pytest.mark.asyncio
-async def test_only_owner_can_read_or_update_account_profile() -> None:
-    repository = InMemoryUserRepository()
-    service = UserService(repository)
-    owner = await service.create_user(create_data())
+    service = UserService(repository, NoBlockChecker())
+    owner = seed_user(repository)
     reads_before = repository.read_count
 
-    with pytest.raises(UserPermissionError):
-        await service.get_account_profile(owner.id, uuid4())
     with pytest.raises(UserPermissionError):
         await service.update_profile(
             owner.id,
@@ -137,22 +90,48 @@ async def test_only_owner_can_read_or_update_account_profile() -> None:
 @pytest.mark.asyncio
 async def test_public_and_owner_profile_responses_are_separated() -> None:
     repository = InMemoryUserRepository()
-    service = UserService(repository)
-    owner = await service.create_user(create_data())
+    service = UserService(repository, NoBlockChecker())
+    owner = seed_user(repository)
 
-    public_profile = await service.get_public_profile(owner.id)
-    account_profile = await service.get_account_profile(owner.id, owner.id)
+    public_profile = await service.get_public_profile(owner.id, owner.id)
 
     assert public_profile.id == owner.id
     assert not hasattr(public_profile, "email")
-    assert account_profile.email == "relay.user@example.com"
+
+
+class BlockChecker:
+    def __init__(self, blocked: bool) -> None:
+        self.blocked = blocked
+        self.checked_pair: tuple[UUID, UUID] | None = None
+
+    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
+        self.checked_pair = (first_id, second_id)
+        return self.blocked
+
+
+@pytest.mark.asyncio
+async def test_blocked_profiles_are_hidden_in_both_directions() -> None:
+    repository = InMemoryUserRepository()
+    owner = seed_user(repository)
+    viewer = seed_user(
+        repository,
+        email="viewer@example.com",
+        username="viewer_user",
+    )
+    checker = BlockChecker(blocked=True)
+    service = UserService(repository, checker)
+
+    for requester_id, profile_id in ((viewer.id, owner.id), (owner.id, viewer.id)):
+        with pytest.raises(UserNotFoundError):
+            await service.get_public_profile(profile_id, requester_id)
+        assert checker.checked_pair == (profile_id, requester_id)
 
 
 @pytest.mark.asyncio
 async def test_profile_update_changes_only_submitted_fields() -> None:
     repository = InMemoryUserRepository()
-    service = UserService(repository)
-    owner = await service.create_user(create_data(bio="Original bio"))
+    service = UserService(repository, NoBlockChecker())
+    owner = seed_user(repository, bio="Original bio")
 
     updated = await service.update_profile(
         owner.id,

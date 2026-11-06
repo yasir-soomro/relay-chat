@@ -51,11 +51,11 @@ async def update_my_profile(
 @router.get("/{user_id}", response_model=UserPublicProfile)
 async def get_public_profile(
     user_id: UUID,
-    _: CurrentUser,
+    current_user: CurrentUser,
     user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> UserPublicProfile:
     try:
-        return await user_service.get_public_profile(user_id)
+        return await user_service.get_public_profile(user_id, current_user.id)
     except UserNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

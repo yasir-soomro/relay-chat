@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     auth_jwt_secret: SecretStr = SecretStr("")
     auth_access_token_expire_minutes: Annotated[int, Field(gt=0)] = 15
     auth_refresh_token_expire_days: Annotated[int, Field(gt=0)] = 30
+    ws_auth_timeout_seconds: Annotated[int, Field(gt=0)] = 10
+    connection_request_cooldown_seconds: Annotated[int, Field(ge=0)] | None = None
     app_env: Literal["development", "test", "production"] = "development"
     auth_allowed_origins: str = "http://localhost:5173"
 
