@@ -1,8 +1,8 @@
 # Relay
 
-Relay is a private one-to-one messaging backend. The backend is built with
-FastAPI, asynchronous SQLAlchemy, PostgreSQL, and WebSockets. The backend
-source, tests, migrations, setup, API, and deployment documentation live in
+Relay is a private one-to-one messaging application. Its backend uses FastAPI,
+asynchronous SQLAlchemy, PostgreSQL, and WebSockets. Backend source, tests,
+migrations, setup, API, and deployment documentation live in
 [`backend/`](./backend/).
 
 ## Backend quick start
@@ -45,6 +45,21 @@ private and never commit real credentials.
 The backend README contains configuration, API routes, authorization behavior,
 test commands, migration procedures, production requirements, and known
 limitations.
+
+## Frontend specifications
+
+The approved frontend direction is Next.js App Router, TypeScript, Tailwind
+CSS, REST APIs, and WebSockets. Frontend requirements and implementation
+sequencing are documented separately:
+
+- [Frontend Technical Specification](./docs/sdd/frontend/spec.md) — scope,
+  architecture, routes, API boundaries, UX, accessibility, and open decisions.
+- [Frontend Implementation Roadmap](./docs/sdd/frontend/plan.md) — phases,
+  dependencies, milestones, and verification criteria.
+
+The [Root Product Specification](./docs/sdd/spec.md) and
+[Backend Technical Specification](./docs/sdd/backend/spec.md) remain the
+authoritative product and backend references.
 
 ## Verification
 
