@@ -12,6 +12,7 @@ from backend.services.message_service import MessagePermissionError
 from backend.websocket.connection_manager import ConnectionManager
 from backend.websocket.events import (
     MessageDeliveryAckEvent,
+    MessageDeliveryBatchAckEvent,
     MessageSendEvent,
     SubscribeEvent,
 )
@@ -300,6 +301,91 @@ async def test_delivery_ack_uses_recipient_identity_and_syncs_participant_device
         assert socket.sent[0]["type"] == "message.status"
         assert socket.sent[0]["conversation_id"] == str(conversation_id)
     assert outsider_socket.sent == []
+
+
+@pytest.mark.asyncio
+async def test_batch_delivery_ack_updates_recipient_device_statuses(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    recipient_id, conversation_id = uuid4(), uuid4()
+    message_ids = [uuid4(), uuid4()]
+    now = datetime.now(UTC)
+    statuses = [
+        MessageStatusResponse(
+            id=message_id,
+            status=MessageStatus.DELIVERED,
+            sent_at=now,
+            delivered_at=now,
+            read_at=None,
+        )
+        for message_id in message_ids
+    ]
+    acknowledgment: list[tuple[UUID, UUID, list[UUID]]] = []
+
+    class MessageStatusServiceStub:
+        def __init__(self, *_: object) -> None:
+            pass
+
+        async def acknowledge_delivery_batch(
+            self,
+            requested_conversation_id: UUID,
+            authenticated_recipient_id: UUID,
+            requested_message_ids: list[UUID],
+        ) -> object:
+            acknowledgment.append(
+                (
+                    requested_conversation_id,
+                    authenticated_recipient_id,
+                    requested_message_ids,
+                )
+            )
+            return type("BatchResult", (), {"items": statuses})()
+
+    monkeypatch.setattr(
+        "backend.websocket.message_handler.MessageStatusRepository",
+        lambda _: object(),
+    )
+    monkeypatch.setattr(
+        "backend.websocket.message_handler.MessageStatusService",
+        MessageStatusServiceStub,
+    )
+
+    manager = ConnectionManager()
+    recipient_socket, second_device_socket, stranger_socket = (
+        FakeWebSocket(),
+        FakeWebSocket(),
+        FakeWebSocket(),
+    )
+    recipient = manager.register(recipient_socket, recipient_id)
+    second_device = manager.register(second_device_socket, recipient_id)
+    stranger = manager.register(stranger_socket, uuid4())
+    manager.subscribe(recipient, conversation_id)
+    manager.subscribe(second_device, conversation_id)
+    manager.subscribe(stranger, uuid4())
+    session_factory = cast(
+        async_sessionmaker[AsyncSession],
+        EmptySessionFactory(),
+    )
+
+    await WebSocketMessageHandler(session_factory, manager).handle(
+        recipient,
+        MessageDeliveryBatchAckEvent(
+            type="message.delivery_ack_batch",
+            conversation_id=conversation_id,
+            message_ids=message_ids,
+        ),
+    )
+
+    assert acknowledgment == [(conversation_id, recipient_id, message_ids)]
+    assert [event["type"] for event in recipient_socket.sent] == [
+        "message.status",
+        "message.status",
+    ]
+    assert [event["type"] for event in second_device_socket.sent] == [
+        "message.status",
+        "message.status",
+    ]
+    assert stranger_socket.sent == []
 
 
 @pytest.mark.asyncio

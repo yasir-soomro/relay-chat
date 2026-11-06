@@ -32,6 +32,7 @@ from backend.websocket.events import (
     ErrorEvent,
     InboundEvent,
     MessageDeliveryAckEvent,
+    MessageDeliveryBatchAckEvent,
     MessageReadAckEvent,
     MessageReceivedEvent,
     MessageSendEvent,
@@ -68,6 +69,8 @@ class WebSocketMessageHandler:
                     await self._send_message(connection, event)
                 case MessageDeliveryAckEvent():
                     await self._acknowledge_delivery(connection, event)
+                case MessageDeliveryBatchAckEvent():
+                    await self._acknowledge_delivery_batch(connection, event)
                 case MessageReadAckEvent():
                     await self._acknowledge_read(connection, event)
                 case _:
@@ -196,6 +199,27 @@ class WebSocketMessageHandler:
             event.conversation_id,
             status,
         )
+
+    async def _acknowledge_delivery_batch(
+        self,
+        connection: WebSocketConnection,
+        event: MessageDeliveryBatchAckEvent,
+    ) -> None:
+        if not self._connections.is_subscribed(connection, event.conversation_id):
+            await self._permission_error(connection)
+            return
+
+        async with self._session_factory() as session:
+            statuses = await MessageStatusService(
+                MessageStatusRepository(session)
+            ).acknowledge_delivery_batch(
+                event.conversation_id,
+                connection.user_id,
+                event.message_ids,
+            )
+
+        for status in statuses.items:
+            await self._broadcast_status(event.conversation_id, status)
 
     async def _acknowledge_read(
         self,

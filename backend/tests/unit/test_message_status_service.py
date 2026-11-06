@@ -159,6 +159,66 @@ async def test_delivery_acknowledgment_is_recipient_only_idempotent_and_monotoni
 
 
 @pytest.mark.asyncio
+async def test_batch_delivery_is_recipient_only_and_idempotent(
+    status_setup: tuple[
+        UUID,
+        UUID,
+        UUID,
+        Conversation,
+        Message,
+        Message,
+        MemoryMessageStatusRepository,
+        MessageStatusService,
+    ],
+) -> None:
+    (
+        sender_id,
+        recipient_id,
+        stranger_id,
+        conversation,
+        first,
+        second,
+        repository,
+        service,
+    ) = status_setup
+
+    with pytest.raises(MessageStatusPermissionError):
+        await service.acknowledge_delivery_batch(
+            conversation.id,
+            sender_id,
+            [first.id],
+        )
+    with pytest.raises(MessageStatusNotFoundError):
+        await service.acknowledge_delivery_batch(
+            conversation.id,
+            stranger_id,
+            [first.id],
+        )
+    with pytest.raises(MessageStatusNotFoundError):
+        await service.acknowledge_delivery_batch(
+            conversation.id,
+            recipient_id,
+            [first.id, uuid4()],
+        )
+
+    result = await service.acknowledge_delivery_batch(
+        conversation.id,
+        recipient_id,
+        [first.id, second.id],
+    )
+    repeated = await service.acknowledge_delivery_batch(
+        conversation.id,
+        recipient_id,
+        [first.id, second.id],
+    )
+
+    assert len(result.items) == 2
+    assert all(item.status == MessageStatus.DELIVERED for item in result.items)
+    assert all(item.status == MessageStatus.DELIVERED for item in repeated.items)
+    assert repository.commits == 1
+
+
+@pytest.mark.asyncio
 async def test_read_ack_from_sent_marks_delivered_and_read_idempotently(
     status_setup: tuple[
         UUID,

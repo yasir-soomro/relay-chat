@@ -33,5 +33,21 @@ class MessageReadBatchRequest(BaseModel):
         return self
 
 
+class MessageDeliveryBatchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    message_ids: list[UUID] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def require_unique_message_ids(self) -> MessageDeliveryBatchRequest:
+        if len(set(self.message_ids)) != len(self.message_ids):
+            raise ValueError("message_ids must be unique")
+        return self
+
+
+class MessageDeliveryBatchResponse(BaseModel):
+    items: list[MessageStatusResponse]
+
+
 class MessageReadBatchResponse(BaseModel):
     items: list[MessageStatusResponse]

@@ -3,7 +3,11 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from backend.websocket.events import MessageReadAckEvent, inbound_event_adapter
+from backend.websocket.events import (
+    MessageDeliveryBatchAckEvent,
+    MessageReadAckEvent,
+    inbound_event_adapter,
+)
 
 
 def test_message_send_requires_client_id_and_rejects_identity_override() -> None:
@@ -47,3 +51,25 @@ def test_read_ack_rejects_duplicate_message_ids() -> None:
                 "message_ids": [str(message_id), str(message_id)],
             }
         )
+
+
+def test_batch_delivery_ack_rejects_duplicate_message_ids() -> None:
+    conversation_id, message_id = uuid4(), uuid4()
+
+    with pytest.raises(ValidationError):
+        inbound_event_adapter.validate_python(
+            {
+                "type": "message.delivery_ack_batch",
+                "conversation_id": str(conversation_id),
+                "message_ids": [str(message_id), str(message_id)],
+            }
+        )
+
+    valid = inbound_event_adapter.validate_python(
+        {
+            "type": "message.delivery_ack_batch",
+            "conversation_id": str(conversation_id),
+            "message_ids": [str(message_id)],
+        }
+    )
+    assert isinstance(valid, MessageDeliveryBatchAckEvent)

@@ -89,6 +89,23 @@ async def test_delivery_read_and_batch_acknowledgments_persist(
             assert delivered.delivered_at is not None
             assert repeated_delivery.delivered_at == delivered.delivered_at
 
+            batch_delivery = await service.acknowledge_delivery_batch(
+                conversation.id,
+                recipient.id,
+                [batch_message.id],
+            )
+            assert len(batch_delivery.items) == 1
+            assert batch_delivery.items[0].status == MessageStatus.DELIVERED
+            repeated_batch_delivery = await service.acknowledge_delivery_batch(
+                conversation.id,
+                recipient.id,
+                [batch_message.id],
+            )
+            assert (
+                repeated_batch_delivery.items[0].delivered_at
+                == batch_delivery.items[0].delivered_at
+            )
+
             read = await service.acknowledge_read(
                 delivered_message.id,
                 recipient.id,

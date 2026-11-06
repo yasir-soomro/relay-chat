@@ -6,6 +6,7 @@ from backend.repository.message_status_repository import (
     MessageStatusRepositoryProtocol,
 )
 from backend.schemas.message_status import (
+    MessageDeliveryBatchResponse,
     MessageReadBatchResponse,
     MessageStatusResponse,
 )
@@ -68,6 +69,61 @@ class MessageStatusService:
             )
             await self._repository.commit()
         return MessageStatusResponse.model_validate(message)
+
+    async def acknowledge_delivery_batch(
+        self,
+        conversation_id: UUID,
+        recipient_id: UUID,
+        message_ids: list[UUID],
+    ) -> MessageDeliveryBatchResponse:
+        if (
+            not message_ids
+            or len(message_ids) > 100
+            or len(set(message_ids)) != len(message_ids)
+        ):
+            raise MessageStatusNotFoundError
+        conversation = await self._repository.get_conversation(conversation_id)
+        if conversation is None or recipient_id not in {
+            conversation.user_low_id,
+            conversation.user_high_id,
+        }:
+            raise MessageStatusNotFoundError
+        messages = await self._repository.get_messages_for_update(
+            conversation_id,
+            message_ids,
+        )
+        if len(messages) != len(message_ids):
+            raise MessageStatusNotFoundError
+        if any(message.sender_id == recipient_id for message in messages):
+            raise MessageStatusPermissionError
+        if any(
+            message.sender_id
+            not in {
+                conversation.user_low_id,
+                conversation.user_high_id,
+            }
+            for message in messages
+        ):
+            raise MessageStatusNotFoundError
+
+        now = datetime.now(UTC)
+        changed = False
+        for message in messages:
+            if message.status == MessageStatus.SENT.value:
+                await self._repository.set_status(
+                    message,
+                    MessageStatus.DELIVERED,
+                    delivered_at=max(now, message.sent_at),
+                    read_at=None,
+                )
+                changed = True
+        if changed:
+            await self._repository.commit()
+        return MessageDeliveryBatchResponse(
+            items=[
+                MessageStatusResponse.model_validate(message) for message in messages
+            ]
+        )
 
     async def acknowledge_read_batch(
         self,

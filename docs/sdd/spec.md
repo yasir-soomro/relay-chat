@@ -131,9 +131,9 @@ No additional capabilities are committed by this specification. Examples not def
 | BR-005 | Removing a connection does not erase its chat history, but neither former connection may send new messages to the other while the connection is removed. |
 | BR-006 | A block prevents messages in both directions and hides each blocked user's profile from the other. Blocking terminates an accepted connection and cancels pending requests between the users without deleting chat history. Unblocking restores profile visibility but does not restore connection status; a new request must be accepted before messaging resumes. |
 | BR-007 | A user may edit or delete only messages they authored. Editing replaces the current content without retaining prior versions. Deletion retains the message record as a visible deleted-message placeholder and clears its content; no deletion expiry is defined. |
-| BR-008 | Offline message delivery is supported. The rules for message expiry, retry limits, and the precise delivery event are **Open**. |
-| BR-009 | Sending is a client-side transient state and is not persisted by the backend. A message successfully persisted by the backend has status Sent. A recipient-device delivery acknowledgment advances Sent to Delivered; a recipient read acknowledgment advances Sent or Delivered to Read, with a read acknowledgment also recording delivery if needed. Statuses do not regress, and repeated acknowledgments are idempotent. Exact per-device aggregation across a recipient's multiple active devices remains **Open**. |
-| BR-010 | A user may have multiple active devices. The exact cross-device behavior for sessions, message state, edits, deletions, and sign-out is **Open**. |
+| BR-008 | Messages are persisted before delivery and remain stored while a recipient is offline. After reconnecting and restoring authorized subscriptions, missed messages are recovered through paginated REST conversation history; the server does not replay missed WebSocket events. Expiry and retry limits remain **Open**. |
+| BR-009 | Sending is a client-side transient state and is not persisted by the backend. A message successfully persisted by the backend has status Sent. Acknowledgment by any recipient device advances Sent to Delivered; recipient read acknowledgment advances Sent or Delivered to Read, recording delivery if needed. Statuses do not regress, repeated acknowledgments are idempotent, and global status changes synchronize across active recipient devices. Per-device status records are not created. |
+| BR-010 | A user may have multiple active devices. Reconnection requires fresh WebSocket authentication and resubscription, and message status changes synchronize to connected participant devices. Other cross-device behavior for sessions, edits, deletions, and sign-out remains **Open**. |
 
 ## 8. Core user workflows
 
@@ -177,9 +177,9 @@ No numeric performance, availability, capacity, or retention targets have been c
 |---|---|
 | NFR-001 | Relay must enforce profile-edit ownership and messaging eligibility consistently across all user-facing ways of performing those actions. |
 | NFR-002 | Relay must preserve the association between a private message and its conversation participants so that the message is not presented as a conversation message to unrelated users. |
-| NFR-003 | Relay must keep the supported message status labels distinguishable to users; it must not present one status as another. Exact status semantics are open under BR-009. |
+| NFR-003 | Relay must keep the supported message status labels distinguishable to users; it must not present one status as another. Status semantics and global recipient-device aggregation follow BR-009. |
 | NFR-004 | Relay must preserve chat history when a connection is removed, as required by FR-009. |
-| NFR-005 | Relay must support offline delivery and multiple active devices without requiring the recipient to be online at the time the sender sends a message. Exact delivery guarantees and targets are **Open**. |
+| NFR-005 | Relay must persist messages independently of recipient connectivity and support recovery through REST conversation history and multiple active devices. Expiry, retry limits, availability, and delivery targets remain **Open**. |
 
 ## 10. Security and privacy requirements
 
@@ -210,9 +210,9 @@ The following criteria provide externally observable checks for the V1 requireme
 | AC-007 | Given an accepted connection with chat history, when either user removes the connection, then the history remains and neither user can send a new message to the other. (FR-009, BR-005) |
 | AC-008 | Given two users, when one blocks the other, then messaging is prevented in both directions and neither can view the other's profile. (FR-010, BR-006) |
 | AC-009 | Given a message authored by a user, when that author edits or deletes it, then the action applies to their message; another user cannot edit or delete it. (FR-012, FR-013, BR-007, NFR-012) |
-| AC-010 | Given a message sent while its recipient is offline, when the recipient is able to receive messages again, then Relay supports delivery of that message. (FR-014, BR-008) |
-| AC-011 | Given a message, Sending is transient; after persistence the message is Sent; recipient delivery acknowledgment advances it to Delivered, and recipient read acknowledgment advances it to Read without regression. Read acknowledgment also records delivery if needed. Per-device aggregation follows BR-009's remaining open decision. (FR-015, BR-009) |
-| AC-012 | Given a user with multiple active devices, Relay permits those devices to be active for the same user. Cross-device state behavior must await the decisions in BR-010. (FR-016, BR-010) |
+| AC-010 | Given a message sent while its recipient is offline, when the recipient reconnects and restores the conversation subscription, then they can recover the persisted message through paginated REST history without server-side WebSocket replay. (FR-014, BR-008) |
+| AC-011 | Given a message, Sending is transient; after persistence the message is Sent; acknowledgment by any recipient device advances it to Delivered, and recipient read acknowledgment advances it to Read without regression. Read acknowledgment also records delivery if needed; global status changes synchronize across recipient devices. (FR-015, BR-009) |
+| AC-012 | Given a user with multiple active devices, Relay permits those devices to be active for the same user; reconnecting devices reauthenticate and resubscribe, and connected devices receive global message-status changes. Other cross-device behavior remains open under BR-010. (FR-016, BR-010) |
 
 ## 12. Assumptions, constraints, and open decisions
 
@@ -234,9 +234,9 @@ The following criteria provide externally observable checks for the V1 requireme
 The following items require product decisions before dependent details can be finalized:
 
 1. The duration, start point, and measurement of the rejected-request cooldown (BR-004).
-2. Offline delivery guarantees, including expiry and retry behavior (BR-008).
-3. Exact definitions and transitions for Delivered and Read, including multi-device aggregation (BR-009).
-5. Cross-device behavior for message state, profile and connection changes, edits, deletions, and sign-out (BR-010).
+2. Offline message expiry and retry behavior (BR-008).
+3. Delivery availability targets beyond durable persistence and REST-history recovery (BR-008).
+5. Cross-device behavior for profile and connection changes, edits, deletions, and sign-out (BR-010).
 6. Additional account lifecycle workflows beyond the approved backend REST authentication contract (for example, email verification or password recovery), which remain out of scope unless separately approved.
 7. Whether additional messaging capabilities or user-safety features are part of V1.
 8. Performance, availability, scale, accessibility, data retention, and compliance targets.

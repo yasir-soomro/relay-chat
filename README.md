@@ -29,3 +29,14 @@ uv run mypy src/backend
 
 The health endpoint is `GET /health`. Authentication endpoints and database
 migration instructions are documented in the [backend README](./backend/README.md).
+
+## Messaging and offline recovery
+
+Messages are persisted before delivery and remain available while recipients
+are offline. After reconnecting and restoring conversation subscriptions,
+clients recover missed messages through the paginated conversation-history
+REST endpoint; the server does not replay missed WebSocket events. Clients
+should follow the history cursor and deduplicate recovered messages by ID.
+Delivery and read acknowledgments update the global message status, which is
+synchronized to connected recipient devices. See the
+[backend README](./backend/README.md) for API details and limits.

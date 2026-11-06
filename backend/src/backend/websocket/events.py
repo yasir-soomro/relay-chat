@@ -39,6 +39,18 @@ class MessageDeliveryAckEvent(ClientEvent):
     message_id: UUID
 
 
+class MessageDeliveryBatchAckEvent(ClientEvent):
+    type: Literal["message.delivery_ack_batch"]
+    conversation_id: UUID
+    message_ids: list[UUID] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def require_unique_message_ids(self) -> MessageDeliveryBatchAckEvent:
+        if len(set(self.message_ids)) != len(self.message_ids):
+            raise ValueError("message_ids must be unique")
+        return self
+
+
 class MessageReadAckEvent(ClientEvent):
     type: Literal["message.read_ack"]
     conversation_id: UUID
@@ -57,6 +69,7 @@ type InboundEvent = (
     | UnsubscribeEvent
     | MessageSendEvent
     | MessageDeliveryAckEvent
+    | MessageDeliveryBatchAckEvent
     | MessageReadAckEvent
 )
 inbound_event_adapter = TypeAdapter(

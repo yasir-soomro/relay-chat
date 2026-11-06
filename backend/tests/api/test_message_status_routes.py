@@ -10,6 +10,7 @@ from backend.core.security import get_current_user
 from backend.main import app
 from backend.model.user import User
 from backend.schemas.message_status import (
+    MessageDeliveryBatchResponse,
     MessageReadBatchResponse,
     MessageStatus,
     MessageStatusResponse,
@@ -43,6 +44,21 @@ class MessageStatusServiceStub:
         if self.reject:
             raise MessageStatusPermissionError
         return self._response(message_id)
+
+    async def acknowledge_delivery_batch(
+        self,
+        conversation_id: UUID,
+        recipient_id: UUID,
+        message_ids: list[UUID],
+    ) -> MessageDeliveryBatchResponse:
+        self.calls.append(
+            ("delivery_batch", conversation_id, recipient_id, message_ids)
+        )
+        if self.reject:
+            raise MessageStatusPermissionError
+        return MessageDeliveryBatchResponse(
+            items=[self._response(message_id) for message_id in message_ids]
+        )
 
     async def acknowledge_read(
         self,
@@ -105,6 +121,10 @@ async def test_delivery_read_and_batch_acknowledgments_use_current_user(
     conversation_id = uuid4()
 
     delivered = await status_client.post(f"/messages/{message_id}/delivery")
+    delivered_batch = await status_client.post(
+        f"/conversations/{conversation_id}/messages/delivery",
+        json={"message_ids": [str(message_id)]},
+    )
     read = await status_client.post(f"/messages/{message_id}/read")
     batch = await status_client.post(
         f"/conversations/{conversation_id}/messages/read",
@@ -112,11 +132,17 @@ async def test_delivery_read_and_batch_acknowledgments_use_current_user(
     )
 
     assert delivered.status_code == 200
+    assert delivered_batch.status_code == 200
     assert read.status_code == 200
     assert batch.status_code == 200
     assert service.calls[0] == ("delivery", message_id, status_actor.id)
-    assert service.calls[1] == ("read", message_id, status_actor.id)
-    assert service.calls[2][:3] == ("batch", conversation_id, status_actor.id)
+    assert service.calls[1][:3] == (
+        "delivery_batch",
+        conversation_id,
+        status_actor.id,
+    )
+    assert service.calls[2] == ("read", message_id, status_actor.id)
+    assert service.calls[3][:3] == ("batch", conversation_id, status_actor.id)
 
 
 @pytest.mark.asyncio
@@ -133,6 +159,10 @@ async def test_batch_ack_rejects_duplicate_ids_and_identity_overrides(
         f"/conversations/{conversation_id}/messages/read",
         json={"message_ids": [str(message_id), str(message_id)]},
     )
+    duplicate_delivery = await status_client.post(
+        f"/conversations/{conversation_id}/messages/delivery",
+        json={"message_ids": [str(message_id), str(message_id)]},
+    )
     identity_override = await status_client.post(
         f"/conversations/{conversation_id}/messages/read",
         json={
@@ -142,6 +172,7 @@ async def test_batch_ack_rejects_duplicate_ids_and_identity_overrides(
     )
 
     assert duplicate.status_code == 422
+    assert duplicate_delivery.status_code == 422
     assert identity_override.status_code == 422
 
 

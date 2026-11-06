@@ -163,12 +163,12 @@ async def test_send_persists_as_sent_for_offline_retrieval(
         MessageService,
     ],
 ) -> None:
-    sender_id, _, _, conversation, repository, _, service = message_setup
+    sender_id, recipient_id, _, conversation, repository, _, service = message_setup
 
     message = await service.send_message(conversation.id, sender_id, "Hello")
     page = await service.list_messages(
         conversation.id,
-        sender_id,
+        recipient_id,
         limit=10,
         cursor=None,
     )
@@ -319,6 +319,11 @@ async def test_cursor_pagination_returns_stable_pages_and_rejects_bad_cursor(
     assert first.next_cursor is not None
     assert second.next_cursor is None
     assert len(sent) == 3
+    combined = first.items + second.items
+    assert [(item.created_at, item.id) for item in combined] == sorted(
+        ((item.created_at, item.id) for item in combined),
+        reverse=True,
+    )
 
     with pytest.raises(MessagePaginationError):
         await service.list_messages(

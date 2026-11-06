@@ -114,15 +114,17 @@ The conversation module does not implement message delivery.
 Authenticated participants can send messages to a conversation, retrieve
 conversation history with a cursor and page size, retrieve individual messages,
 edit their own messages, and soft-delete their own messages. Message contents
-are persisted for later retrieval when a recipient is offline; no expiry or
-delivery guarantee is defined. New messages require an accepted connection
-and no block. A successfully persisted message has status `sent`; recipient
-device delivery and read acknowledgments advance it monotonically to
-`delivered` and `read`. A read acknowledgment also records delivery if needed.
-Acknowledgments are idempotent. `sending` is client-side only. Per-device
-status aggregation remains undefined. Edits replace current content without
-retaining prior versions. Deletion retains the record and returns a visible
-tombstone with no content.
+are persisted for later retrieval when a recipient is offline. On reconnect,
+clients recover history through the paginated REST endpoint; the server does
+not replay missed WebSocket events. Expiry and retry limits are undefined.
+New messages require an accepted connection and no block. A successfully
+persisted message has status `sent`; acknowledgment by any recipient device
+advances the global status monotonically to `delivered`, and a recipient read
+acknowledgment advances it to `read`. A read acknowledgment also records
+delivery if needed. Status changes synchronize to connected recipient devices.
+Acknowledgments are idempotent. `sending` is client-side only. Edits replace
+current content without retaining prior versions. Deletion retains the record
+and returns a visible tombstone with no content.
 
 ```text
 POST   /conversations/{conversation_id}/messages
@@ -132,12 +134,15 @@ PATCH  /messages/{message_id}
 DELETE /messages/{message_id}
 POST   /messages/{message_id}/delivery
 POST   /messages/{message_id}/read
+POST   /conversations/{conversation_id}/messages/delivery
 POST   /conversations/{conversation_id}/messages/read
 ```
 
-History pages are ordered newest first; `next_cursor` is opaque and can be
-passed to retrieve the next page. Batch read acknowledgments accept up to 100
-message IDs in one conversation.
+History pages are ordered newest first by `(created_at, id)`; `next_cursor` is
+opaque and can be passed to retrieve the next page. Clients should fetch until
+`next_cursor` is null and merge recovered records by message ID to deduplicate
+overlapping recovery scans. Batch read and delivery acknowledgments accept up
+to 100 message IDs in one conversation.
 
 ## WebSocket messaging
 
@@ -147,7 +152,9 @@ seconds; configure it with `WS_AUTH_TIMEOUT_SECONDS`. Every reconnect requires
 fresh authentication and clients resubscribe to conversations.
 
 Supported events are `subscribe`, `unsubscribe`, `message.send`,
-`message.delivery_ack`, and `message.read_ack`. Each send requires a
+`message.delivery_ack`, `message.delivery_ack_batch`, and `message.read_ack`.
+Batch delivery and read acknowledgments accept up to 100 unique message IDs.
+Each send requires a
 `client_message_id` UUID; retries with the same sender, conversation, and key
 return the original message without a duplicate incoming event. WebSocket
 sends use the same connection/block checks and persistence service as REST.
@@ -155,10 +162,14 @@ Recipient acknowledgments advance global message status, which is synchronized
 to connected devices subscribed to that conversation.
 
 Messages sent while a recipient is offline remain available through REST
-history; missed WebSocket messages are not buffered or replayed. Subscribing
-sends the current status records, not message history. Connection management is
-in-memory and supports devices connected to one application process only;
-multi-instance WebSocket coordination is not implemented.
+history at `GET /conversations/{conversation_id}/messages`. After reconnecting,
+clients should fetch pages until `next_cursor` is null and merge messages by
+their stable message `id`; pages are newest-first and ordered by
+`(created_at, id)`. This makes overlapping recovery scans safe to deduplicate.
+Missed WebSocket messages are not buffered or replayed. Subscribing sends the
+current status records, not message history. Connection management is in-memory
+and supports devices connected to one application process only; multi-instance
+WebSocket coordination is not implemented.
 
 ## Database and migrations
 
