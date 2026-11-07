@@ -1,5 +1,13 @@
 import type { NextConfig } from "next";
 
+const apiPaths = [
+  "auth",
+  "users",
+  "connections",
+  "conversations",
+  "messages",
+] as const;
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
@@ -8,24 +16,16 @@ const nextConfig: NextConfig = {
       process.env.RELAY_API_ORIGIN ?? "http://127.0.0.1:8000"
     ).replace(/\/+$/, "");
 
-    return [
+    return apiPaths.flatMap((path) => [
       {
-        source: "/auth",
-        destination: `${apiOrigin}/auth`,
+        source: `/${path}`,
+        destination: `${apiOrigin}/${path}`,
       },
       {
-        source: "/auth/:path*",
-        destination: `${apiOrigin}/auth/:path*`,
+        source: `/${path}/:path*`,
+        destination: `${apiOrigin}/${path}/:path*`,
       },
-    ];
-  },
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
+    ]);
   },
 };
 

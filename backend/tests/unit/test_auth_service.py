@@ -1,8 +1,12 @@
+import threading
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 import jwt
 import pytest
+from pwdlib import PasswordHash
+from pydantic import SecretStr
+
 from backend.core.config import Settings
 from backend.model.auth_session import AuthRefreshToken, AuthSession
 from backend.model.user import User
@@ -21,8 +25,6 @@ from backend.services.auth_service import (
     UserAlreadyExistsError,
     hash_refresh_token,
 )
-from pwdlib import PasswordHash
-from pydantic import SecretStr
 
 TEST_SECRET = "test-only-signing-secret-that-is-at-least-32-bytes"
 
@@ -371,3 +373,32 @@ async def test_refresh_expiry_is_enforced() -> None:
 
     with pytest.raises(InvalidAuthenticationTokenError):
         await service.refresh(tokens.refresh_token)
+
+
+@pytest.mark.asyncio
+async def test_password_hashing_and_verification_run_off_the_event_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    thread_ids: list[int] = []
+    main_thread_id = threading.get_ident()
+
+    class ThreadTrackingHasher:
+        def hash(self, password: str) -> str:
+            thread_ids.append(threading.get_ident())
+            return f"hash:{password}"
+
+        def verify(self, password: str, password_hash: str) -> bool:
+            thread_ids.append(threading.get_ident())
+            return password_hash == f"hash:{password}"
+
+    monkeypatch.setattr(
+        "backend.services.auth_service._password_hasher",
+        ThreadTrackingHasher,
+    )
+    service, _, _ = make_service()
+
+    await service.register(registration_data())
+    await service.login(login_data())
+
+    assert len(thread_ids) == 2
+    assert all(thread_id != main_thread_id for thread_id in thread_ids)

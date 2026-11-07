@@ -13,6 +13,11 @@ from backend.services.message_status_service import (
     MessageStatusManagementError,
     MessageStatusService,
 )
+from backend.websocket.connection_manager import (
+    ConnectionManager,
+    get_connection_manager,
+)
+from backend.websocket.status_broadcast import broadcast_message_status
 
 router = APIRouter()
 
@@ -28,8 +33,17 @@ async def acknowledge_delivery(
         MessageStatusService,
         Depends(get_message_status_service),
     ],
+    manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
 ) -> MessageStatusResponse:
     try:
-        return await service.acknowledge_delivery(message_id, current_user.id)
+        (
+            status_response,
+            conversation_id,
+        ) = await service.acknowledge_delivery_with_context(
+            message_id,
+            current_user.id,
+        )
     except MessageStatusManagementError as error:
         raise_message_status_http_error(error)
+    await broadcast_message_status(manager, conversation_id, status_response)
+    return status_response

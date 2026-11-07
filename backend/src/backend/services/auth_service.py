@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import secrets
 from dataclasses import dataclass
@@ -109,7 +110,10 @@ class AuthService:
             email=email,
             username=data.username,
             display_name=data.display_name,
-            password_hash=_password_hasher().hash(data.password.get_secret_value()),
+            password_hash=await asyncio.to_thread(
+                _password_hasher().hash,
+                data.password.get_secret_value(),
+            ),
             bio=data.bio,
         )
         try:
@@ -125,9 +129,12 @@ class AuthService:
         self._secret()
         user = await self._user_repository.get_by_email(str(data.email).lower())
         password_hash = (
-            user.password_hash if user is not None else _dummy_password_hash()
+            user.password_hash
+            if user is not None
+            else await asyncio.to_thread(_dummy_password_hash)
         )
-        password_valid = _password_hasher().verify(
+        password_valid = await asyncio.to_thread(
+            _password_hasher().verify,
             data.password.get_secret_value(),
             password_hash,
         )

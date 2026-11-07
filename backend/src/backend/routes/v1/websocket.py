@@ -15,6 +15,7 @@ from backend.services.auth_service import AuthService
 from backend.websocket.connection_manager import (
     ConnectionManager,
     WebSocketConnection,
+    get_connection_manager,
 )
 from backend.websocket.connections import authenticate_first_frame
 from backend.websocket.events import (
@@ -26,13 +27,6 @@ from backend.websocket.message_handler import WebSocketMessageHandler
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["websocket"])
-
-
-def get_connection_manager() -> ConnectionManager:
-    return _connection_manager
-
-
-_connection_manager = ConnectionManager()
 
 
 @router.websocket("/ws")

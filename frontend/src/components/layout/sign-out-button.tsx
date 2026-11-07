@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/providers/auth-provider";
 
 export function SignOutButton() {
@@ -21,13 +22,14 @@ export function SignOutButton() {
   }
 
   return (
-    <button
-      className="min-h-11 rounded-full border border-line px-4 text-sm font-medium text-muted transition-colors hover:bg-soft hover:text-ink focus-visible:outline-moss disabled:cursor-wait disabled:opacity-60"
+    <Button
+      className="px-4 font-medium disabled:cursor-wait"
       disabled={isSigningOut}
       onClick={() => void handleSignOut()}
       type="button"
+      variant="quiet"
     >
       {isSigningOut ? "Signing out…" : "Sign out"}
-    </button>
+    </Button>
   );
 }

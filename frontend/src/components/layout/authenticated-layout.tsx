@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { AppNavbar } from "@/components/layout/app-navbar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { PageContainer } from "@/components/layout/page-container";
@@ -13,12 +12,12 @@ export function AuthenticatedLayout({
 }: AuthenticatedLayoutProps) {
   return (
     <div className="min-h-screen bg-canvas lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <Link
+      <a
         className="sr-only z-50 rounded-full bg-surface px-5 py-3 font-semibold text-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
         href="#main-content"
       >
         Skip to content
-      </Link>
+      </a>
       <AppSidebar />
       <div className="flex min-h-screen min-w-0 flex-col">
         <AppNavbar />
