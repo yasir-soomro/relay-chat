@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { UserConnectionActions } from "@/features/connections/components/user-connection-actions";
 import { useAuth } from "@/features/auth/providers/auth-provider";
 import { ProfileCard } from "@/features/users/components/profile-card";
 import { getPublicProfile } from "@/features/users/api";
@@ -95,8 +96,12 @@ export function PublicProfilePage({ userId }: PublicProfilePageProps) {
           )}
         </div>
       ) : isCurrentProfileLoaded && profile ? (
-        <div className="mt-8">
+        <div className="mt-8 space-y-5">
           <ProfileCard profile={profile} />
+          <UserConnectionActions
+            displayName={profile.display_name}
+            userId={profile.id}
+          />
         </div>
       ) : (
         <p className="mt-8 rounded-3xl border border-line bg-surface p-6 text-sm text-muted">

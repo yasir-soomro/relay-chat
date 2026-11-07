@@ -190,6 +190,16 @@ The following authentication contract is approved for the backend REST API:
 
 The JWT signing key must be configured outside source control and contain at least 32 bytes. The local browser origin defaults to `http://localhost:5173`; deployments must set their trusted origins explicitly.
 
+### Approved user discovery contract
+
+`GET /api/v1/users/discover` requires an authenticated principal and returns only public profile fields. Query parameters:
+
+- `q` is optional and matches usernames by case-insensitive prefix. It must contain 1–30 ASCII letters, digits, or underscores.
+- `limit` is optional, defaults to `20`, and must be between `1` and `50`.
+- `cursor` is optional and is the `username` of the final item from the preceding page. It must be a valid lowercase username.
+
+Results are ordered by username ascending. The authenticated user and every user who has a block relationship in either direction with the authenticated user are excluded. The response is `{ "items": [...], "next_cursor": "..." }`; each item contains only `id`, `username`, `display_name`, and `bio`. `next_cursor` is the last returned username when another page exists, otherwise `null`. Invalid query parameters return `422`; unauthenticated requests return `401`. Existing unprefixed backend routes remain unchanged.
+
 ## 7. REST API and WebSocket architecture
 
 ### REST APIs

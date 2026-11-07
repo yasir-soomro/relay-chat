@@ -233,12 +233,19 @@ export async function login(values: LoginValues): Promise<TokenResponse> {
 }
 
 export async function refreshAccessToken(): Promise<TokenResponse> {
-  const body = await request(
-    "/auth/refresh",
-    { method: "POST" },
-    "Your session has expired. Please sign in again.",
-  );
-  return parseTokenResponse(body);
+  const refresh = async () => {
+    const body = await request(
+      "/auth/refresh",
+      { method: "POST" },
+      "Your session has expired. Please sign in again.",
+    );
+    return parseTokenResponse(body);
+  };
+
+  if (typeof navigator === "undefined" || !navigator.locks) {
+    return refresh();
+  }
+  return navigator.locks.request("relay-auth-refresh", refresh);
 }
 
 export async function getCurrentAccount(

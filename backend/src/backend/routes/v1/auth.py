@@ -1,7 +1,9 @@
+import logging
 from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.core.config import Settings, get_settings
 from backend.core.dependencies import get_auth_service
@@ -20,6 +22,7 @@ from backend.services.auth_service import (
 )
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+logger = logging.getLogger(__name__)
 
 
 def _set_refresh_cookie(
@@ -101,6 +104,18 @@ async def login(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Authentication is not configured",
         ) from None
+    except (SQLAlchemyError, OSError, TimeoutError) as error:
+        logger.warning(
+            "Login database operation failed",
+            extra={
+                "event_type": "login_database_unavailable",
+                "error_type": type(error).__name__,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service is temporarily unavailable",
+        ) from None
 
     _set_refresh_cookie(response, issued_tokens, settings)
     response.headers["Cache-Control"] = "no-store"
@@ -142,6 +157,18 @@ async def refresh(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Authentication is not configured",
+        ) from None
+    except (SQLAlchemyError, OSError, TimeoutError) as error:
+        logger.warning(
+            "Refresh-token database operation failed",
+            extra={
+                "event_type": "refresh_database_unavailable",
+                "error_type": type(error).__name__,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service is temporarily unavailable",
         ) from None
 
     _set_refresh_cookie(response, issued_tokens, settings)

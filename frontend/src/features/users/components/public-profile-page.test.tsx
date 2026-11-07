@@ -11,6 +11,10 @@ vi.mock("@/features/auth/providers/auth-provider", () => ({
   useAuth: mockUseAuth,
 }));
 
+vi.mock("@/features/connections/components/user-connection-actions", () => ({
+  UserConnectionActions: () => <div>Connection actions</div>,
+}));
+
 const publicProfile = {
   id: "c01d6ec5-e1a5-4bdb-93a4-4c932a1e0f15",
   username: "relay_user",

@@ -5,6 +5,11 @@ export type UserProfile = {
   bio: string | null;
 };
 
+export type UserDiscoveryPage = {
+  items: UserProfile[];
+  next_cursor: string | null;
+};
+
 export type UserAccountProfile = UserProfile & {
   email: string;
   created_at: string;

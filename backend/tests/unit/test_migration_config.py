@@ -24,4 +24,4 @@ def test_alembic_config_uses_migrations_directory_and_model_metadata() -> None:
     }
     assert config.get_main_option("sqlalchemy.url") is None
     assert Message.__table__.c.client_message_id.nullable is True
-    assert scripts.get_current_head() == "20261108_07_ws"
+    assert scripts.get_current_head() == "20261109_08_discovery"

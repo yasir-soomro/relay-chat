@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { AppNavbar } from "@/components/layout/app-navbar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { PageContainer } from "@/components/layout/page-container";
+import { ConnectionsProvider } from "@/features/connections/providers/connections-provider";
 
 type AuthenticatedLayoutProps = {
   children: ReactNode;
@@ -26,7 +27,9 @@ export function AuthenticatedLayout({
           id="main-content"
           tabIndex={-1}
         >
-          <PageContainer>{children}</PageContainer>
+          <ConnectionsProvider>
+            <PageContainer>{children}</PageContainer>
+          </ConnectionsProvider>
         </main>
       </div>
     </div>

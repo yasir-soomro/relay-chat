@@ -3,6 +3,7 @@ import type {
   ProfileFieldErrors,
   ProfileFieldName,
   UserAccountProfile,
+  UserDiscoveryPage,
   UserProfile,
   UserProfileValues,
 } from "@/features/users/types";
@@ -69,6 +70,24 @@ function parsePublicProfile(body: unknown): UserProfile {
     username: body.username,
     display_name: body.display_name,
     bio: body.bio,
+  };
+}
+
+function parseDiscoveryPage(body: unknown): UserDiscoveryPage {
+  if (
+    !isRecord(body) ||
+    !Array.isArray(body.items) ||
+    (typeof body.next_cursor !== "string" && body.next_cursor !== null)
+  ) {
+    throw new UserRequestError(
+      502,
+      "Relay returned an unexpected discovery response. Please try again.",
+    );
+  }
+
+  return {
+    items: body.items.map(parsePublicProfile),
+    next_cursor: body.next_cursor,
   };
 }
 
@@ -203,6 +222,39 @@ export async function getPublicProfile(
     },
   );
   return parsePublicProfile(body);
+}
+
+export async function discoverUsers(
+  authenticatedFetch: AuthenticatedRequest,
+  {
+    q,
+    limit = 20,
+    cursor,
+  }: { q?: string; limit?: number; cursor?: string },
+  signal?: AbortSignal,
+): Promise<UserDiscoveryPage> {
+  if (q && !/^[A-Za-z0-9_]{1,30}$/.test(q)) {
+    throw new UserRequestError(
+      422,
+      "Search using 1–30 letters, numbers, or underscores.",
+    );
+  }
+  const search = new URLSearchParams({ limit: String(limit) });
+  if (q) {
+    search.set("q", q);
+  }
+  if (cursor) {
+    search.set("cursor", cursor);
+  }
+  const body = await request(
+    authenticatedFetch,
+    `/api/v1/users/discover?${search.toString()}`,
+    {
+      method: "GET",
+      signal,
+    },
+  );
+  return parseDiscoveryPage(body);
 }
 
 export async function updateMyProfile(

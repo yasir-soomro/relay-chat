@@ -9,5 +9,8 @@ export const siteNavigation = [
 
 export const appNavigation = [
   { href: "/app", label: "Overview" },
+  { href: "/conversations", label: "Conversations" },
+  { href: "/discover", label: "Discover" },
+  { href: "/app/connections", label: "Connections" },
   { href: "/app/profile", label: "Profile" },
 ] as const satisfies readonly SiteNavigationItem[];

@@ -27,6 +27,10 @@ describe("Next.js backend rewrites", () => {
           destination: "https://api.relay.test/users/:path*",
         },
         {
+          source: "/api/v1/users/:path*",
+          destination: "https://api.relay.test/api/v1/users/:path*",
+        },
+        {
           source: "/connections/:path*",
           destination: "https://api.relay.test/connections/:path*",
         },

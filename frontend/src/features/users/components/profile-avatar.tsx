@@ -1,6 +1,7 @@
 type ProfileAvatarProps = {
   displayName: string;
   username: string;
+  size?: "small" | "large";
 };
 
 function initials(displayName: string, username: string): string {
@@ -16,11 +17,14 @@ function initials(displayName: string, username: string): string {
 export function ProfileAvatar({
   displayName,
   username,
+  size = "large",
 }: ProfileAvatarProps) {
   return (
     <div
       aria-label={`${displayName} avatar`}
-      className="grid size-20 shrink-0 place-items-center rounded-full bg-soft text-2xl font-semibold tracking-wide text-moss ring-1 ring-line sm:size-24 sm:text-3xl"
+      className={`grid shrink-0 place-items-center rounded-full bg-soft font-semibold tracking-wide text-moss ring-1 ring-line ${
+        size === "small" ? "size-12 text-sm" : "size-20 text-2xl sm:size-24 sm:text-3xl"
+      }`}
       role="img"
     >
       {initials(displayName, username)}

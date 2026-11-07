@@ -249,8 +249,10 @@ WebSocket coordination is not implemented.
 ## Database and migrations
 
 Database credentials belong in the local `.env`. The async PostgreSQL engine
-uses `asyncpg`, SSL, and disabled prepared-statement caching for Supabase
-transaction pooling. Verify configured database connectivity with:
+uses `asyncpg`, SSL, disabled prepared-statement caching, and a bounded pool
+with connection pre-ping for Supabase transaction pooling. The default pool
+allows five persistent connections and five temporary overflow connections
+per application worker. Verify configured database connectivity with:
 
 ```powershell
 uv run pytest tests/integration/test_database_connection.py

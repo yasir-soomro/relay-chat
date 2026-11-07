@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.core.config import Settings, get_settings
 from backend.core.dependencies import get_auth_service, get_user_service
@@ -15,6 +16,7 @@ from backend.schemas.auth import LoginRequest
 from backend.schemas.user import (
     UserAccountResponse,
     UserCreate,
+    UserDiscoveryResponse,
     UserProfileUpdate,
     UserPublicProfile,
 )
@@ -92,11 +94,20 @@ class AuthServiceStub:
         self.logout_session = session_id
 
 
+class DatabaseUnavailableAuthService(AuthServiceStub):
+    async def refresh(self, token: str | None) -> tuple[IssuedTokens, UUID]:
+        raise SQLAlchemyError("private database diagnostic")
+
+    async def authenticate_access_token(self, token: str) -> AuthenticatedUser:
+        raise SQLAlchemyError("private database diagnostic")
+
+
 class UserServiceStub:
     def __init__(self, account: User) -> None:
         self.account = account
         self.updated_ids: tuple[UUID, UUID] | None = None
         self.profile_request: tuple[UUID, UUID] | None = None
+        self.discovery_request: tuple[UUID, str | None, int, str | None] | None = None
 
     async def get_public_profile(
         self,
@@ -105,6 +116,20 @@ class UserServiceStub:
     ) -> UserPublicProfile:
         self.profile_request = (user_id, requester_id)
         return UserPublicProfile.model_validate(self.account)
+
+    async def discover_users(
+        self,
+        requester_id: UUID,
+        *,
+        query: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> UserDiscoveryResponse:
+        self.discovery_request = (requester_id, query, limit, cursor)
+        return UserDiscoveryResponse(
+            items=[UserPublicProfile.model_validate(self.account)],
+            next_cursor=None,
+        )
 
     async def update_profile(
         self,
@@ -134,9 +159,11 @@ async def test_auth_and_user_routes_require_bearer_auth(
 ) -> None:
     me_response = await api_client.get("/auth/me")
     user_response = await api_client.get("/users/me")
+    discovery_response = await api_client.get("/api/v1/users/discover")
 
     assert me_response.status_code == 401
     assert user_response.status_code == 401
+    assert discovery_response.status_code == 401
     assert me_response.headers["www-authenticate"] == "Bearer"
 
 
@@ -269,6 +296,37 @@ async def test_invalid_refresh_clears_cookie_and_disallowed_origin_is_rejected(
 
 
 @pytest.mark.asyncio
+async def test_database_errors_during_refresh_and_authentication_are_not_401(
+    api_client: AsyncClient,
+    api_settings: Settings,
+) -> None:
+    app.dependency_overrides[get_auth_service] = (
+        lambda: DatabaseUnavailableAuthService()
+    )
+    app.dependency_overrides[get_settings] = lambda: api_settings
+
+    refresh_response = await api_client.post(
+        "/auth/refresh",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Cookie": "relay_refresh_token=present-refresh-token",
+        },
+    )
+    account_response = await api_client.get(
+        "/auth/me",
+        headers={"Authorization": "Bearer syntactically-present-token"},
+    )
+
+    assert refresh_response.status_code == 503
+    assert account_response.status_code == 503
+    assert refresh_response.json()["detail"] == (
+        "Authentication service is temporarily unavailable"
+    )
+    assert "private database diagnostic" not in refresh_response.text
+    assert "private database diagnostic" not in account_response.text
+
+
+@pytest.mark.asyncio
 async def test_profile_update_uses_authenticated_user_id_and_hides_password_hash(
     api_client: AsyncClient,
     account: User,
@@ -320,6 +378,61 @@ async def test_public_profile_route_uses_authenticated_viewer_and_public_schema(
         "display_name": account.display_name,
         "bio": account.bio,
     }
+
+
+@pytest.mark.asyncio
+async def test_discovery_uses_authenticated_identity_and_returns_public_fields(
+    api_client: AsyncClient,
+    account: User,
+) -> None:
+    user_service = UserServiceStub(account)
+    app.dependency_overrides[get_current_user] = lambda: AuthenticatedUser(
+        user=account,
+        session_id=uuid4(),
+    )
+    app.dependency_overrides[get_user_service] = lambda: user_service
+
+    response = await api_client.get(
+        "/api/v1/users/discover",
+        params={"q": "REL", "limit": 1},
+    )
+
+    assert response.status_code == 200
+    assert user_service.discovery_request == (account.id, "REL", 1, None)
+    assert response.json() == {
+        "items": [
+            {
+                "id": str(account.id),
+                "username": account.username,
+                "display_name": account.display_name,
+                "bio": account.bio,
+            }
+        ],
+        "next_cursor": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_discovery_rejects_invalid_limit_and_cursor(
+    api_client: AsyncClient,
+    account: User,
+) -> None:
+    app.dependency_overrides[get_current_user] = lambda: AuthenticatedUser(
+        user=account,
+        session_id=uuid4(),
+    )
+
+    oversized_limit = await api_client.get(
+        "/api/v1/users/discover",
+        params={"limit": 51},
+    )
+    invalid_cursor = await api_client.get(
+        "/api/v1/users/discover",
+        params={"cursor": "UpperCase"},
+    )
+
+    assert oversized_limit.status_code == 422
+    assert invalid_cursor.status_code == 422
 
 
 @pytest.mark.asyncio
