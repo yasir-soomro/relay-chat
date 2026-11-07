@@ -3,9 +3,6 @@ from uuid import UUID, uuid4
 
 import jwt
 import pytest
-from pwdlib import PasswordHash
-from pydantic import SecretStr
-
 from backend.core.config import Settings
 from backend.model.auth_session import AuthRefreshToken, AuthSession
 from backend.model.user import User
@@ -16,6 +13,7 @@ from backend.services.auth_service import (
     JWT_ALGORITHM,
     JWT_AUDIENCE,
     JWT_ISSUER,
+    AuthenticationConfigurationError,
     AuthService,
     InvalidAuthenticationTokenError,
     InvalidCredentialsError,
@@ -23,6 +21,8 @@ from backend.services.auth_service import (
     UserAlreadyExistsError,
     hash_refresh_token,
 )
+from pwdlib import PasswordHash
+from pydantic import SecretStr
 
 TEST_SECRET = "test-only-signing-secret-that-is-at-least-32-bytes"
 
@@ -219,6 +219,23 @@ async def test_register_hashes_password_and_login_creates_independent_sessions()
 
 
 @pytest.mark.asyncio
+async def test_login_requires_a_configured_jwt_signing_secret() -> None:
+    settings = Settings(
+        db_user="test",
+        db_password=SecretStr("test-password"),
+        db_host="localhost",
+        db_port=5432,
+        db_name="test",
+        auth_jwt_secret=SecretStr(""),
+    )
+    service = AuthService(MemoryUserRepository(), MemoryAuthRepository(), settings)
+
+    await service.register(registration_data())
+    with pytest.raises(AuthenticationConfigurationError):
+        await service.login(login_data())
+
+
+@pytest.mark.asyncio
 async def test_login_rejects_unknown_email_and_wrong_password() -> None:
     service, _, _ = make_service()
     with pytest.raises(InvalidCredentialsError):
@@ -299,10 +316,19 @@ async def test_valid_access_token_resolves_its_user_and_session() -> None:
     _, tokens, session_id = await service.login(login_data())
 
     principal = await service.authenticate_access_token(tokens.access_token)
+    claims = jwt.decode(
+        tokens.access_token,
+        TEST_SECRET,
+        algorithms=[JWT_ALGORITHM],
+        issuer=JWT_ISSUER,
+        audience=JWT_AUDIENCE,
+    )
 
     assert principal.id == account.id
     assert principal.user is users.users[account.id]
     assert principal.session_id == session_id
+    assert claims["sub"] == str(account.id)
+    assert claims["sid"] == str(session_id)
     assert await auth.is_session_active(session_id, datetime.now(UTC))
 
 
