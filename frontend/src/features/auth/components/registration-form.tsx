@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 import { AuthField } from "@/features/auth/components/auth-field";
 import { PasswordField } from "@/features/auth/components/password-field";
 import {
@@ -13,6 +14,7 @@ import type {
   FieldErrors,
   RegistrationValues,
 } from "@/features/auth/types";
+import { useAuth } from "@/features/auth/providers/auth-provider";
 
 const emptyValues: RegistrationValues = {
   email: "",
@@ -22,11 +24,19 @@ const emptyValues: RegistrationValues = {
 };
 
 export function RegistrationForm() {
+  const { status } = useAuth();
+  const router = useRouter();
   const [values, setValues] = useState(emptyValues);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/app");
+    }
+  }, [router, status]);
 
   function updateField<Field extends keyof RegistrationValues>(
     field: Field,

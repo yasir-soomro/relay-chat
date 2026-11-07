@@ -29,3 +29,11 @@ export type TokenResponse = {
   token_type: "bearer";
   expires_in: number;
 };
+
+export type UserAccount = RegistrationResponse["user"];
+
+export type AuthStatus =
+  | "loading"
+  | "authenticated"
+  | "unauthenticated"
+  | "error";

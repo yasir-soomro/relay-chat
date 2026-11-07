@@ -1,5 +1,6 @@
 import { NavigationLinks } from "@/components/layout/navigation-links";
 import { SiteBrand } from "@/components/layout/site-brand";
+import { SignOutButton } from "@/components/layout/sign-out-button";
 import { appNavigation } from "@/lib/site";
 
 export function AppSidebar() {
@@ -16,6 +17,9 @@ export function AppSidebar() {
           items={appNavigation}
         />
       </nav>
+      <div className="mt-auto px-3 pt-6">
+        <SignOutButton />
+      </div>
     </aside>
   );
 }

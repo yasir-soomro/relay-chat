@@ -5,6 +5,7 @@ import type {
   RegistrationResponse,
   RegistrationValues,
   TokenResponse,
+  UserAccount,
 } from "@/features/auth/types";
 
 const authFieldNames = [
@@ -33,16 +34,18 @@ export class AuthenticationRequestError extends Error {
   }
 }
 
-async function postJson(path: string, payload: object): Promise<unknown> {
+async function request(
+  path: string,
+  init: RequestInit,
+  unauthorizedMessage = "The email or password you entered is incorrect.",
+): Promise<unknown> {
   let response: Response;
 
   try {
     response = await fetch(path, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       cache: "no-store",
-      body: JSON.stringify(payload),
+      ...init,
     });
   } catch {
     throw new AuthenticationRequestError(
@@ -51,7 +54,8 @@ async function postJson(path: string, payload: object): Promise<unknown> {
     );
   }
 
-  const body: unknown = await response.json().catch(() => null);
+  const body: unknown =
+    response.status === 204 ? null : await response.json().catch(() => null);
 
   if (!response.ok) {
     const fieldErrors = extractFieldErrors(body);
@@ -67,14 +71,14 @@ async function postJson(path: string, payload: object): Promise<unknown> {
     if (response.status === 401) {
       throw new AuthenticationRequestError(
         response.status,
-        "The email or password you entered is incorrect.",
+        unauthorizedMessage,
       );
     }
 
     if (response.status === 403) {
       throw new AuthenticationRequestError(
         response.status,
-        "Sign in is not enabled for this site yet. Please try again later.",
+        "Relay rejected this request from this site. Check the trusted frontend configuration.",
       );
     }
 
@@ -102,6 +106,18 @@ async function postJson(path: string, payload: object): Promise<unknown> {
   return body;
 }
 
+async function postJson(
+  path: string,
+  payload: object,
+  unauthorizedMessage?: string,
+): Promise<unknown> {
+  return request(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  }, unauthorizedMessage);
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -125,7 +141,15 @@ function parseRegistrationResponse(body: unknown): RegistrationResponse {
     throw invalidResponse();
   }
 
-  const { user } = body;
+  return { user: parseAccount(body.user) };
+}
+
+function parseAccount(body: unknown): UserAccount {
+  if (!isRecord(body)) {
+    throw invalidResponse();
+  }
+
+  const user = body;
   if (
     typeof user.id !== "string" ||
     typeof user.email !== "string" ||
@@ -139,15 +163,13 @@ function parseRegistrationResponse(body: unknown): RegistrationResponse {
   }
 
   return {
-    user: {
-      id: user.id,
-      email: user.email,
-      username: user.username,
-      display_name: user.display_name,
-      bio: user.bio,
-      created_at: user.created_at,
-      updated_at: user.updated_at,
-    },
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    display_name: user.display_name,
+    bio: user.bio,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
   };
 }
 
@@ -208,4 +230,31 @@ export async function login(values: LoginValues): Promise<TokenResponse> {
     password: values.password,
   });
   return parseTokenResponse(body);
+}
+
+export async function refreshAccessToken(): Promise<TokenResponse> {
+  const body = await request(
+    "/auth/refresh",
+    { method: "POST" },
+    "Your session has expired. Please sign in again.",
+  );
+  return parseTokenResponse(body);
+}
+
+export async function getCurrentAccount(
+  accessToken: string,
+): Promise<UserAccount> {
+  const body = await request("/auth/me", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  }, "Your session has expired. Please sign in again.");
+
+  return parseAccount(body);
+}
+
+export async function logout(accessToken: string): Promise<void> {
+  await request("/auth/logout", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  }, "Your session has expired. Please sign in again.");
 }

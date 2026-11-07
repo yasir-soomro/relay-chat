@@ -1,25 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuthField } from "@/features/auth/components/auth-field";
-import {
-  AuthenticationRequestError,
-  login,
-} from "@/features/auth/api";
+import { AuthenticationRequestError } from "@/features/auth/api";
 import { PasswordField } from "@/features/auth/components/password-field";
 import { useAuth } from "@/features/auth/providers/auth-provider";
 import { validateLogin } from "@/features/auth/schemas";
 import type { FieldErrors } from "@/features/auth/types";
 
 export function LoginForm() {
-  const { setAccessToken } = useAuth();
+  const { signIn, status, error: authError } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState("");
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const loginRequested = useRef(false);
+
+  useEffect(() => {
+    if (status === "authenticated" && !loginRequested.current) {
+      router.replace("/app");
+    }
+  }, [router, status]);
 
   function updateField(field: keyof FieldErrors, value: string) {
     if (field === "email") {
@@ -48,12 +54,25 @@ export function LoginForm() {
       return;
     }
 
+    loginRequested.current = true;
     setIsSubmitting(true);
     try {
-      const result = await login({ email, password });
-      setAccessToken(result.access_token);
+      await signIn({ email, password });
       setPassword("");
       setSuccess(true);
+      const requestedPath = new URLSearchParams(window.location.search).get(
+        "next",
+      );
+      const redirectTarget = requestedPath
+        ? new URL(requestedPath, window.location.origin)
+        : null;
+      const nextPath =
+        redirectTarget?.origin === window.location.origin &&
+        requestedPath?.startsWith("/") &&
+        !requestedPath.startsWith("//")
+          ? `${redirectTarget.pathname}${redirectTarget.search}${redirectTarget.hash}`
+          : "/app";
+      router.replace(nextPath);
     } catch (error) {
       if (error instanceof AuthenticationRequestError) {
         setFormError(error.message);
@@ -97,13 +116,13 @@ export function LoginForm() {
         value={password}
       />
 
-      {formError ? (
+      {formError || authError ? (
         <p
           aria-live="polite"
           className="rounded-xl border border-[#efd2cc] bg-[#fff7f5] px-4 py-3 text-sm leading-6 text-[#8e3027]"
           role="alert"
         >
-          {formError}
+          {formError || authError}
         </p>
       ) : null}
       {success ? (

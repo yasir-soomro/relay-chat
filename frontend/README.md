@@ -34,9 +34,13 @@ if the backend is not at `http://127.0.0.1:8000`. Configure the backend's
 Configure a private `AUTH_JWT_SECRET` of at least 32 bytes in the backend
 environment as well. Restart the frontend after changing environment variables.
 
-Login keeps the access token in memory only. It is not written to browser
-storage or a URL; reloading the page clears the in-memory session until the
-application auth bootstrap is implemented.
+The authentication provider restores the session from the backend's HttpOnly
+refresh-token cookie when the app loads. Access tokens stay in memory only;
+they are never written to browser storage or a URL. The provider refreshes
+access tokens before expiry and retries an authenticated request once after a
+401 response. The `/app` route waits for session verification and redirects
+unauthenticated visitors to `/login`; backend endpoints must still enforce
+authorization independently.
 
 ## Checks and production
 
@@ -46,6 +50,12 @@ Run the TypeScript check, lint, and optimized production build:
 npm run typecheck
 npm run lint
 npm run build
+```
+
+Run the frontend authentication integration tests:
+
+```powershell
+npm test
 ```
 
 Start the production server after building:
@@ -62,8 +72,8 @@ Application source lives in `src/`. App Router routes and layouts are in
 `src/components/`; landing page composition is in `src/features/landing/`;
 design tokens and global styles are in `src/styles/` and `src/app/globals.css`.
 Shared types and site-level utilities live in `src/types/` and `src/lib/`.
-The `src/hooks/` and `src/providers/` directories are reserved for future
-client-side workflows; the static landing page does not need client hooks or
-application providers yet.
+Authentication UI, API access, session state, and the `useAuth` hook live
+together in `src/features/auth/`. The root layout provides the session to all
+routes; the workspace layout guards authenticated pages.
 
 The project uses system fonts and does not fetch external fonts at build time.
