@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { SiteNavigationItem } from "@/types/site";
 
 type NavigationLinksProps = {
@@ -12,6 +15,9 @@ export function NavigationLinks({
   direction = "horizontal",
   items,
 }: NavigationLinksProps) {
+  const pathname = usePathname();
+  const activeHref = currentHref ?? pathname;
+
   return (
     <ul
       className={
@@ -23,9 +29,9 @@ export function NavigationLinks({
       {items.map((item) => (
         <li key={item.href}>
           <Link
-            aria-current={item.href === currentHref ? "page" : undefined}
+            aria-current={item.href === activeHref ? "page" : undefined}
             className={`block rounded-lg px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-moss ${
-              item.href === currentHref
+              item.href === activeHref
                 ? "bg-soft text-ink"
                 : "text-muted hover:bg-soft hover:text-ink"
             } ${

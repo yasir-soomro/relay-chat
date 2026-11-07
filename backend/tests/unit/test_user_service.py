@@ -17,6 +17,8 @@ class InMemoryUserRepository:
         self.users: dict[UUID, User] = {}
         self.read_count = 0
         self.commit_count = 0
+        self.discovery_results: list[User] = []
+        self.discovery_request: tuple[UUID, str | None, int, str | None] | None = None
 
     async def get_by_id(self, user_id: UUID) -> User | None:
         self.read_count += 1
@@ -42,6 +44,17 @@ class InMemoryUserRepository:
             setattr(user, field, value)
         user.updated_at = datetime.now(UTC)
         return user
+
+    async def discover_users(
+        self,
+        requester_id: UUID,
+        *,
+        query: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> list[User]:
+        self.discovery_request = (requester_id, query, limit, cursor)
+        return self.discovery_results[:limit]
 
     async def commit(self) -> None:
         self.commit_count += 1
@@ -148,3 +161,34 @@ async def test_profile_update_changes_only_submitted_fields() -> None:
     assert updated.display_name == "Relay User"
     assert updated.email == "relay.user@example.com"
     assert repository.commit_count == 1
+
+
+@pytest.mark.asyncio
+async def test_discovery_normalizes_search_and_uses_extra_row_for_cursor() -> None:
+    repository = InMemoryUserRepository()
+    service = UserService(repository, NoBlockChecker())
+    requester_id = uuid4()
+    first = seed_user(repository, username="search_a")
+    second = seed_user(
+        repository,
+        email="second@example.com",
+        username="search_b",
+    )
+    repository.discovery_results = [first, second]
+
+    response = await service.discover_users(
+        requester_id,
+        query="SEARCH",
+        limit=1,
+        cursor="search_0",
+    )
+
+    assert repository.discovery_request == (
+        requester_id,
+        "search",
+        2,
+        "search_0",
+    )
+    assert response.items[0].username == "search_a"
+    assert response.next_cursor == "search_a"
+    assert not hasattr(response.items[0], "email")

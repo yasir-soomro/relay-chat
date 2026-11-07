@@ -1,12 +1,13 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from backend.core.dependencies import get_user_service
 from backend.core.security import CurrentUser
 from backend.schemas.user import (
     UserAccountResponse,
+    UserDiscoveryResponse,
     UserProfileUpdate,
     UserPublicProfile,
 )
@@ -17,6 +18,7 @@ from backend.services.user_service import (
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
+discovery_router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
 @router.get("/me", response_model=UserAccountResponse)
@@ -46,6 +48,32 @@ async def update_my_profile(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"User {error.field} already exists",
         ) from None
+
+
+@discovery_router.get("/discover", response_model=UserDiscoveryResponse)
+async def discover_users(
+    current_user: CurrentUser,
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    q: Annotated[
+        str | None,
+        Query(
+            min_length=1,
+            max_length=30,
+            pattern=r"^[A-Za-z0-9_]+$",
+        ),
+    ] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+    cursor: Annotated[
+        str | None,
+        Query(min_length=3, max_length=30, pattern=r"^[a-z0-9_]+$"),
+    ] = None,
+) -> UserDiscoveryResponse:
+    return await user_service.discover_users(
+        current_user.id,
+        query=q,
+        limit=limit,
+        cursor=cursor,
+    )
 
 
 @router.get("/{user_id}", response_model=UserPublicProfile)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/providers/auth-provider";
 
 export function AuthenticatedRoute({ children }: { children: ReactNode }) {
@@ -44,14 +45,14 @@ export function AuthenticatedRoute({ children }: { children: ReactNode }) {
         <p className="max-w-md text-sm leading-6 text-muted" role="alert">
           {error ?? "Relay could not restore your session."}
         </p>
-        <button
-          className="mx-auto inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition-colors hover:bg-moss focus-visible:outline-moss"
+        <Button
+          className="mx-auto"
           disabled={isRetrying}
           onClick={() => void handleRetry()}
           type="button"
         >
           {isRetrying ? "Checking..." : "Try again"}
-        </button>
+        </Button>
       </main>
     );
   }

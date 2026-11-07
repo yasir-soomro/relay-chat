@@ -1,7 +1,9 @@
+import logging
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.core.config import Settings, get_settings
 from backend.core.dependencies import get_auth_service
@@ -13,6 +15,7 @@ from backend.services.auth_service import (
 )
 
 _bearer_scheme = HTTPBearer(auto_error=False)
+logger = logging.getLogger(__name__)
 
 
 def require_allowed_origin(
@@ -52,6 +55,18 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Authentication is not configured",
+        ) from None
+    except (SQLAlchemyError, OSError, TimeoutError) as error:
+        logger.warning(
+            "Authentication database operation failed",
+            extra={
+                "event_type": "authentication_database_unavailable",
+                "error_type": type(error).__name__,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service is temporarily unavailable",
         ) from None
 
 

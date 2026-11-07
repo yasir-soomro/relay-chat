@@ -35,6 +35,20 @@ class MessageStatusService:
         *,
         conversation_id: UUID | None = None,
     ) -> MessageStatusResponse:
+        status, _ = await self.acknowledge_delivery_with_context(
+            message_id,
+            recipient_id,
+            conversation_id=conversation_id,
+        )
+        return status
+
+    async def acknowledge_delivery_with_context(
+        self,
+        message_id: UUID,
+        recipient_id: UUID,
+        *,
+        conversation_id: UUID | None = None,
+    ) -> tuple[MessageStatusResponse, UUID]:
         message = await self._get_recipient_message(
             message_id,
             recipient_id,
@@ -49,13 +63,21 @@ class MessageStatusService:
                 read_at=None,
             )
             await self._repository.commit()
-        return MessageStatusResponse.model_validate(message)
+        return MessageStatusResponse.model_validate(message), message.conversation_id
 
     async def acknowledge_read(
         self,
         message_id: UUID,
         recipient_id: UUID,
     ) -> MessageStatusResponse:
+        status, _ = await self.acknowledge_read_with_context(message_id, recipient_id)
+        return status
+
+    async def acknowledge_read_with_context(
+        self,
+        message_id: UUID,
+        recipient_id: UUID,
+    ) -> tuple[MessageStatusResponse, UUID]:
         message = await self._get_recipient_message(message_id, recipient_id)
         if message.status != MessageStatus.READ.value:
             now = datetime.now(UTC)
@@ -68,7 +90,7 @@ class MessageStatusService:
                 read_at=read_at,
             )
             await self._repository.commit()
-        return MessageStatusResponse.model_validate(message)
+        return MessageStatusResponse.model_validate(message), message.conversation_id
 
     async def acknowledge_delivery_batch(
         self,

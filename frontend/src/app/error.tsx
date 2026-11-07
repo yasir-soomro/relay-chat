@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { ActionLink } from "@/components/ui/action-link";
+import { Button } from "@/components/ui/button";
 
 export default function ErrorPage({
   reset,
@@ -21,19 +22,15 @@ export default function ErrorPage({
           Something went wrong. You can try again or head back to Relay.
         </p>
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-          <button
-            className="min-h-12 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-moss"
+          <Button
             onClick={reset}
             type="button"
           >
             Try again
-          </button>
-          <Link
-            className="inline-flex min-h-12 items-center justify-center rounded-full border border-line bg-surface px-6 py-3 text-sm font-semibold text-ink transition-colors hover:bg-soft"
-            href="/"
-          >
+          </Button>
+          <ActionLink href="/" variant="secondary">
             Back to Relay
-          </Link>
+          </ActionLink>
         </div>
       </div>
     </main>

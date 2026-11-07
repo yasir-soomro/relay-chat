@@ -37,11 +37,14 @@ from backend.websocket.events import (
     MessageReceivedEvent,
     MessageSendEvent,
     MessageSentEvent,
-    MessageStatusEvent,
     SubscribedEvent,
     SubscribeEvent,
     UnsubscribedEvent,
     UnsubscribeEvent,
+)
+from backend.websocket.status_broadcast import (
+    broadcast_message_status,
+    message_status_event,
 )
 
 
@@ -132,7 +135,7 @@ class WebSocketMessageHandler:
             for message in page.items:
                 sent = await self._connections.send_event(
                     connection,
-                    self._status_event(
+                    message_status_event(
                         conversation_id,
                         MessageStatusResponse.model_validate(message),
                     ),
@@ -250,19 +253,10 @@ class WebSocketMessageHandler:
         conversation_id: UUID,
         status: MessageStatusResponse,
     ) -> None:
-        await self._connections.send_to_conversation(
+        await broadcast_message_status(
+            self._connections,
             conversation_id,
-            self._status_event(conversation_id, status),
-        )
-
-    @staticmethod
-    def _status_event(
-        conversation_id: UUID,
-        status: MessageStatusResponse,
-    ) -> MessageStatusEvent:
-        return MessageStatusEvent(
-            conversation_id=conversation_id,
-            status=status,
+            status,
         )
 
     async def _send_conversation_error(

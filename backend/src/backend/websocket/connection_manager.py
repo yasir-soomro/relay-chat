@@ -97,3 +97,10 @@ class ConnectionManager:
         for connection in subscribers:
             if user_ids is None or connection.user_id in user_ids:
                 await self.send_event(connection, event)
+
+
+_connection_manager = ConnectionManager()
+
+
+def get_connection_manager() -> ConnectionManager:
+    return _connection_manager

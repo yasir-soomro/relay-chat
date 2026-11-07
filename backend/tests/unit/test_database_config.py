@@ -2,7 +2,7 @@ import pytest
 from pydantic import SecretStr, ValidationError
 
 from backend.core.config import Settings
-from backend.DB.session import build_database_url
+from backend.DB.session import build_database_url, get_engine
 
 
 def test_settings_validate_database_configuration() -> None:
@@ -85,3 +85,27 @@ def test_database_url_escapes_password_and_disables_prepared_cache() -> None:
     assert url.render_as_string(hide_password=True).startswith(
         "postgresql+asyncpg://relay-test:***@localhost:5432/relay-test"
     )
+
+
+@pytest.mark.asyncio
+async def test_application_engine_uses_bounded_pre_pinged_pool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(
+        db_user="relay-test",
+        db_password="test-password",
+        db_host="localhost",
+        db_port=5432,
+        db_name="relay-test",
+    )
+    monkeypatch.setattr("backend.DB.session.get_settings", lambda: settings)
+    get_engine.cache_clear()
+    engine = get_engine()
+    try:
+        assert engine.pool.size() == 5
+        assert engine.pool._max_overflow == 5
+        assert engine.pool._pre_ping is True
+        assert engine.pool._recycle == 1800
+    finally:
+        await engine.dispose()
+        get_engine.cache_clear()

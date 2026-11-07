@@ -12,7 +12,6 @@ export function AppSidebar() {
       </p>
       <nav aria-label="Application navigation">
         <NavigationLinks
-          currentHref="/app"
           direction="vertical"
           items={appNavigation}
         />

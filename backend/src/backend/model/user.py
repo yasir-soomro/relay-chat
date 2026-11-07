@@ -28,6 +28,15 @@ class User(Base):
         Index(
             "uq_users_username_normalized", func.lower(text("username")), unique=True
         ),
+        Index(
+            "ix_users_username",
+            "username",
+        ),
+        Index(
+            "ix_users_username_pattern",
+            "username",
+            postgresql_ops={"username": "varchar_pattern_ops"},
+        ),
     )
 
     id: Mapped[UUID] = mapped_column(

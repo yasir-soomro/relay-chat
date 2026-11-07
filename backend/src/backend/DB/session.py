@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool
 
 from backend.core.config import Settings, get_settings
 
@@ -35,7 +34,11 @@ def get_engine() -> AsyncEngine:
             "ssl": settings.db_ssl,
             "statement_cache_size": 0,
         },
-        poolclass=NullPool,
+        pool_size=5,
+        max_overflow=5,
+        pool_timeout=30,
+        pool_recycle=1800,
+        pool_pre_ping=True,
     )
 
 

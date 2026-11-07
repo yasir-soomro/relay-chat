@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthField } from "@/features/auth/components/auth-field";
+import { Button } from "@/components/ui/button";
 import { PasswordField } from "@/features/auth/components/password-field";
 import {
   AuthenticationRequestError,
@@ -165,13 +166,13 @@ export function RegistrationForm() {
         </p>
       ) : null}
 
-      <button
-        className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-moss focus-visible:outline-moss disabled:cursor-wait disabled:opacity-70"
+      <Button
+        className="w-full"
         disabled={isSubmitting}
         type="submit"
       >
         {isSubmitting ? "Creating account..." : "Create account"}
-      </button>
+      </Button>
 
       <p className="pt-1 text-center text-sm text-muted">
         Already have an account?{" "}

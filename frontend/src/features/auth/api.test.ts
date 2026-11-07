@@ -17,6 +17,10 @@ const account = {
   created_at: "2026-11-07T00:00:00Z",
   updated_at: "2026-11-07T00:00:00Z",
 };
+const originalLockDescriptor = Object.getOwnPropertyDescriptor(
+  navigator,
+  "locks",
+);
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -41,6 +45,11 @@ describe("authentication API client", () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    if (originalLockDescriptor) {
+      Object.defineProperty(navigator, "locks", originalLockDescriptor);
+    } else {
+      Reflect.deleteProperty(navigator, "locks");
+    }
   });
 
   it("registers against the backend contract and parses the account response", async () => {
@@ -91,6 +100,49 @@ describe("authentication API client", () => {
     expect(refreshInit.body).toBeUndefined();
     expect(localStorage.setItem).not.toHaveBeenCalled();
     expect(document.cookie).not.toContain("relay_refresh_token");
+  });
+
+  it("serializes rotating refresh requests across same-origin tabs", async () => {
+    const lockRequest = vi.fn(
+      async (_name: string, callback: () => Promise<unknown>) => callback(),
+    );
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: { request: lockRequest },
+    });
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        access_token: "serialized-access-token",
+        token_type: "bearer",
+        expires_in: 900,
+      }),
+    );
+
+    await expect(refreshAccessToken()).resolves.toMatchObject({
+      access_token: "serialized-access-token",
+    });
+    expect(lockRequest).toHaveBeenCalledOnce();
+    expect(lockRequest).toHaveBeenCalledWith(
+      "relay-auth-refresh",
+      expect.any(Function),
+    );
+  });
+
+  it("refreshes normally when Web Locks are unavailable", async () => {
+    Reflect.deleteProperty(navigator, "locks");
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        access_token: "fallback-access-token",
+        token_type: "bearer",
+        expires_in: 900,
+      }),
+    );
+
+    await expect(refreshAccessToken()).resolves.toMatchObject({
+      access_token: "fallback-access-token",
+    });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/auth/refresh");
   });
 
   it("maps backend field validation errors to form fields", async () => {

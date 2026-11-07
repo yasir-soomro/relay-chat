@@ -67,6 +67,11 @@ class UserPublicProfile(BaseModel):
     bio: str | None
 
 
+class UserDiscoveryResponse(BaseModel):
+    items: list[UserPublicProfile]
+    next_cursor: str | None
+
+
 class UserAccountResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -5,6 +5,7 @@ from backend.model.user import User
 from backend.repository.user_repository import UserUniqueConflict
 from backend.schemas.user import (
     UserAccountResponse,
+    UserDiscoveryResponse,
     UserProfileUpdate,
     UserPublicProfile,
 )
@@ -44,6 +45,15 @@ class UserProfileRepositoryProtocol(Protocol):
         fields: dict[str, str | None],
     ) -> User: ...
 
+    async def discover_users(
+        self,
+        requester_id: UUID,
+        *,
+        query: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> list[User]: ...
+
     async def commit(self) -> None: ...
 
 
@@ -67,6 +77,27 @@ class UserService:
         if user is None:
             raise UserNotFoundError("User not found")
         return UserPublicProfile.model_validate(user)
+
+    async def discover_users(
+        self,
+        requester_id: UUID,
+        *,
+        query: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> UserDiscoveryResponse:
+        users = await self._repository.discover_users(
+            requester_id,
+            query=query.lower() if query is not None else None,
+            limit=limit + 1,
+            cursor=cursor,
+        )
+        has_more = len(users) > limit
+        page = users[:limit]
+        return UserDiscoveryResponse(
+            items=[UserPublicProfile.model_validate(user) for user in page],
+            next_cursor=page[-1].username if has_more else None,
+        )
 
     async def update_profile(
         self,

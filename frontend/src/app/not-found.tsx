@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ActionLink } from "@/components/ui/action-link";
 
 export default function NotFound() {
   return (
@@ -13,12 +13,9 @@ export default function NotFound() {
         <p className="mt-4 leading-7 text-muted">
           The link may be out of date, or the page may have moved.
         </p>
-        <Link
-          className="mt-8 inline-flex min-h-12 items-center justify-center rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-moss"
-          href="/"
-        >
+        <ActionLink className="mt-8" href="/">
           Return to Relay
-        </Link>
+        </ActionLink>
       </div>
     </main>
   );

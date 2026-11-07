@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { PageContainer } from "@/components/layout/page-container";
+import { surfaceCardClassName } from "@/components/ui/card";
 
 type AuthPageProps = {
   children: ReactNode;
@@ -38,7 +39,7 @@ export function AuthPage({
 
       <section
         aria-labelledby="auth-heading"
-        className="motion-rise-delayed mx-auto w-full max-w-md rounded-card border border-line bg-surface p-6 shadow-card sm:p-8 lg:mx-0 lg:justify-self-end"
+        className={`motion-rise-delayed mx-auto w-full max-w-md ${surfaceCardClassName} p-6 sm:p-8 lg:mx-0 lg:justify-self-end`}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-moss">
           {eyebrow}

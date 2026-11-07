@@ -1,10 +1,11 @@
 from typing import ClassVar, Literal, Protocol
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.model.connection import UserBlock
 from backend.model.user import User
 
 UserUniqueField = Literal["email", "username"]
@@ -35,6 +36,15 @@ class UserRepositoryProtocol(Protocol):
     async def update_profile(
         self, user: User, fields: dict[str, str | None]
     ) -> User: ...
+
+    async def discover_users(
+        self,
+        requester_id: UUID,
+        *,
+        query: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> list[User]: ...
 
     async def commit(self) -> None: ...
 
@@ -86,6 +96,41 @@ class UserRepository:
             setattr(user, field, value)
         await self._flush()
         return user
+
+    async def discover_users(
+        self,
+        requester_id: UUID,
+        *,
+        query: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> list[User]:
+        blocked_relationship = exists(
+            select(UserBlock.id).where(
+                or_(
+                    and_(
+                        UserBlock.blocker_id == requester_id,
+                        UserBlock.blocked_id == User.id,
+                    ),
+                    and_(
+                        UserBlock.blocker_id == User.id,
+                        UserBlock.blocked_id == requester_id,
+                    ),
+                )
+            )
+        )
+        statement = select(User).where(
+            User.id != requester_id,
+            ~blocked_relationship,
+        )
+        if query is not None:
+            statement = statement.where(
+                User.username.startswith(query.lower(), autoescape=True)
+            )
+        if cursor is not None:
+            statement = statement.where(User.username > cursor)
+        statement = statement.order_by(User.username.asc()).limit(limit)
+        return list((await self._session.scalars(statement)).all())
 
     async def commit(self) -> None:
         try:

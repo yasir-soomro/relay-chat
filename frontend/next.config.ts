@@ -1,5 +1,13 @@
 import type { NextConfig } from "next";
 
+const apiPaths = [
+  "auth",
+  "users",
+  "connections",
+  "conversations",
+  "messages",
+] as const;
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
@@ -10,22 +18,20 @@ const nextConfig: NextConfig = {
 
     return [
       {
-        source: "/auth",
-        destination: `${apiOrigin}/auth`,
+        source: "/api/v1/users/:path*",
+        destination: `${apiOrigin}/api/v1/users/:path*`,
       },
-      {
-        source: "/auth/:path*",
-        destination: `${apiOrigin}/auth/:path*`,
-      },
+      ...apiPaths.flatMap((path) => [
+        {
+          source: `/${path}`,
+          destination: `${apiOrigin}/${path}`,
+        },
+        {
+          source: `/${path}/:path*`,
+          destination: `${apiOrigin}/${path}/:path*`,
+        },
+      ]),
     ];
-  },
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
   },
 };
 

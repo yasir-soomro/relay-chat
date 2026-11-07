@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuthField } from "@/features/auth/components/auth-field";
+import { Button } from "@/components/ui/button";
 import { AuthenticationRequestError } from "@/features/auth/api";
 import { PasswordField } from "@/features/auth/components/password-field";
 import { useAuth } from "@/features/auth/providers/auth-provider";
@@ -135,13 +136,13 @@ export function LoginForm() {
         </p>
       ) : null}
 
-      <button
-        className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-moss focus-visible:outline-moss disabled:cursor-wait disabled:opacity-70"
+      <Button
+        className="w-full"
         disabled={isSubmitting}
         type="submit"
       >
         {isSubmitting ? "Signing in..." : "Sign in"}
-      </button>
+      </Button>
 
       <p className="text-center text-sm text-muted">
         New to Relay?{" "}
