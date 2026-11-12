@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.exc import SQLAlchemyError
 
 from backend.core.dependencies import get_message_service
 from backend.core.security import get_current_user
@@ -83,6 +84,19 @@ class MessageServiceStub:
         return self.message.model_copy(
             update={"content": None, "deleted_at": datetime.now(UTC)}
         )
+
+
+class FailingMessageService:
+    async def list_messages(
+        self,
+        conversation_id: UUID,
+        user_id: UUID,
+        *,
+        limit: int,
+        cursor: str | None,
+    ) -> MessageListResponse:
+        del conversation_id, user_id, limit, cursor
+        raise SQLAlchemyError("private database diagnostic")
 
 
 @pytest.fixture
@@ -172,6 +186,24 @@ async def test_list_messages_uses_cursor_pagination(
         "older",
     )
     assert response.json()["next_cursor"] == "next"
+
+
+@pytest.mark.asyncio
+async def test_message_history_database_failure_is_safe_and_correlatable(
+    message_client: AsyncClient,
+    message_actor: AuthenticatedUser,
+) -> None:
+    app.dependency_overrides[get_current_user] = lambda: message_actor
+    app.dependency_overrides[get_message_service] = FailingMessageService
+
+    response = await message_client.get(
+        f"/conversations/{uuid4()}/messages?limit=50"
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Database temporarily unavailable."
+    assert response.json()["request_id"] == response.headers["X-Request-ID"]
+    assert "private database diagnostic" not in response.text
 
 
 @pytest.mark.asyncio

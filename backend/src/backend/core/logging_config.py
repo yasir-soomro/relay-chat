@@ -1,8 +1,28 @@
 import json
 import logging
 import logging.config
+import re
 from datetime import UTC, datetime
 from typing import Any
+
+
+def _redact_traceback(value: str) -> str:
+    """Keep stack frames useful without recording credentials or message content."""
+    value = re.sub(
+        r"(?i)(postgres(?:ql)?(?:\+\w+)?://[^:\s]+:)[^@\s]+(@)",
+        r"\1[redacted]\2",
+        value,
+    )
+    value = re.sub(
+        r"(?i)(authorization|password|secret|token)\s*([=:])\s*[^\s,]+",
+        r"\1\2[redacted]",
+        value,
+    )
+    return re.sub(
+        r"(?i)(['\"]content['\"]\s*:\s*['\"])[^'\"]*",
+        r"\1[redacted]",
+        value,
+    )
 
 
 class JsonLogFormatter(logging.Formatter):
@@ -19,6 +39,14 @@ class JsonLogFormatter(logging.Formatter):
         error_type = getattr(record, "error_type", None)
         if isinstance(error_type, str):
             entry["error_type"] = error_type
+        for field in ("request_id", "route", "method", "status_code"):
+            value = getattr(record, field, None)
+            if isinstance(value, (str, int)):
+                entry[field] = value
+        if record.exc_info:
+            entry["traceback"] = _redact_traceback(
+                self.formatException(record.exc_info)
+            )
         return json.dumps(entry, ensure_ascii=True)
 
 

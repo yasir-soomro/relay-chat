@@ -71,18 +71,21 @@ describe("connection API", () => {
       expect.objectContaining({ method: "POST" }),
     );
 
+    const retryAt = "2026-11-15T00:00:00Z";
     authenticatedFetch.mockResolvedValueOnce(
-      jsonResponse(
-        { detail: "Connection request cooldown has not elapsed" },
-        409,
-      ),
+      jsonResponse({
+        detail: {
+          code: "connection_request_cooldown_active",
+          retry_at: retryAt,
+        },
+      }, 409),
     );
     await expect(
       sendConnectionRequest(authenticatedFetch, "recipient-id"),
     ).rejects.toMatchObject({
       name: "ConnectionRequestError",
       status: 409,
-      message: "You need to wait before sending another request to this member.",
+      message: `You can send another request after ${new Date(retryAt).toLocaleString()}.`,
     } satisfies Partial<ConnectionRequestError>);
   });
 

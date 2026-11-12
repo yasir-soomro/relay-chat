@@ -25,6 +25,7 @@ const conversation = {
   user_low_id: "current-user-id",
   user_high_id: "other-user-id",
   created_at: "2026-11-08T00:00:00Z",
+  unread_count: 0,
 };
 const connection = {
   id: "connection-id",
@@ -142,6 +143,56 @@ describe("ConversationsPage", () => {
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Try again" })).toBeTruthy();
   });
+
+  it("shows the empty inbox state for a valid empty conversation list", async () => {
+    authenticatedFetch.mockImplementation((input: RequestInfo | URL) => {
+      if (String(input) === "/connections") {
+        return Promise.resolve(jsonResponse({ items: [connection] }));
+      }
+      return Promise.resolve(jsonResponse({ items: [] }));
+    });
+
+    renderInbox();
+
+    expect(await screen.findByText("No conversations yet")).toBeTruthy();
+  });
+
+  it("retries the inbox after rejecting a response that misses unread_count", async () => {
+    let conversationRequests = 0;
+    authenticatedFetch.mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === "/connections") {
+        return Promise.resolve(jsonResponse({ items: [connection] }));
+      }
+      if (path === "/conversations") {
+        conversationRequests += 1;
+        return Promise.resolve(
+          jsonResponse({
+            items:
+              conversationRequests === 1
+                ? [{ id: conversation.id }]
+                : [conversation],
+          }),
+        );
+      }
+      if (path === "/users/other-user-id") {
+        return Promise.resolve(jsonResponse(profile));
+      }
+      return Promise.resolve(jsonResponse({ items: [] }));
+    });
+
+    renderInbox();
+
+    expect(
+      await screen.findByText(
+        "Relay returned an unexpected conversation list. Please try again.",
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("Relay Friend")).toBeTruthy();
+    expect(conversationRequests).toBe(2);
+  });
 });
 
 describe("ConversationDetailPage", () => {
@@ -158,12 +209,49 @@ describe("ConversationDetailPage", () => {
       if (path === "/users/other-user-id") {
         return Promise.resolve(jsonResponse(profile));
       }
+      if (path.startsWith("/conversations/conversation-id/messages?")) {
+        return Promise.resolve(jsonResponse({ items: [], next_cursor: null }));
+      }
       return Promise.resolve(jsonResponse({ items: [] }));
     });
     render(<ConversationDetailPage conversationId="conversation-id" />);
 
     expect(await screen.findByText("Relay Friend")).toBeTruthy();
-    expect(screen.getByText("Message history and sending are not available in this view yet."))
+    expect(await screen.findByText("A fresh start"))
       .toBeTruthy();
+  });
+
+  it("shows a not-found detail response and retries retrieval", async () => {
+    let detailRequests = 0;
+    authenticatedFetch.mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === "/conversations/conversation-id") {
+        detailRequests += 1;
+        return Promise.resolve(
+          detailRequests === 1
+            ? jsonResponse({ detail: "Conversation or user not found" }, 404)
+            : jsonResponse(conversation),
+        );
+      }
+      if (path === "/users/other-user-id") {
+        return Promise.resolve(jsonResponse(profile));
+      }
+      if (path.startsWith("/conversations/conversation-id/messages?")) {
+        return Promise.resolve(jsonResponse({ items: [], next_cursor: null }));
+      }
+      return Promise.resolve(jsonResponse({ items: [] }));
+    });
+
+    render(<ConversationDetailPage conversationId="conversation-id" />);
+
+    expect(
+      await screen.findByText(
+        "This conversation or member is no longer available.",
+      ),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("Relay Friend")).toBeTruthy();
+    expect(detailRequests).toBe(2);
   });
 });

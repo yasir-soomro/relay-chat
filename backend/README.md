@@ -44,7 +44,7 @@ origins. `APP_ENV=production` enables Secure refresh-token cookies.
 | `WS_AUTH_TIMEOUT_SECONDS` | No | `10`, positive integer |
 | `APP_ENV` | No | `development`; use `production` for deployments |
 | `AUTH_ALLOWED_ORIGINS` | No | `http://localhost:5173`; comma-separated origins |
-| `CONNECTION_REQUEST_COOLDOWN_SECONDS` | No | Unset until the cooldown decision is approved |
+| `CONNECTION_REQUEST_COOLDOWN_HOURS` | No | `168`, positive integer |
 
 Settings are read from the process environment and `backend/.env`; environment
 variables override the file. Production startup requires nonempty database
@@ -62,6 +62,11 @@ database check and returns `503` without connection details when PostgreSQL is
 unavailable. The application validates configuration at startup, emits
 structured JSON logs, and disposes its SQLAlchemy engine during graceful
 shutdown.
+
+Rejected connection requests can be retried by the original requester after
+the configured cooldown. Attempts before expiry return HTTP `409` with
+`detail.code` set to `connection_request_cooldown_active` and `detail.retry_at`
+containing the UTC retry timestamp.
 
 ## Production deployment
 
@@ -143,10 +148,12 @@ but does not reinstate connection status; a new request must be accepted before
 the users can connect again. Connection rows are retained when removed, and
 blocking does not delete chat history.
 
-The rejected-request cooldown duration is unresolved. Do not configure
-`CONNECTION_REQUEST_COOLDOWN_SECONDS` until a duration is approved. While it is
-unset, first-time requests work, but retrying a rejected request returns an
-explicit service-unavailable response.
+The original requester can retry a rejected request after
+`CONNECTION_REQUEST_COOLDOWN_HOURS` (default `168`) has elapsed since its UTC
+rejection timestamp. Configure a positive integer to change the duration.
+Attempts before expiry return HTTP `409` with
+`detail.code=connection_request_cooldown_active` and the UTC availability time
+in `detail.retry_at`.
 
 ```text
 POST   /connections/requests
@@ -164,7 +171,7 @@ GET    /connections
 
 Authenticated users can create or retrieve a one-to-one conversation with an
 accepted, unblocked connection, list their conversations, and retrieve a
-conversation by ID. Conversation responses contain only the conversation ID,
+conversation by ID. Create/detail responses contain only the conversation ID,
 participant IDs, and creation time. Existing conversation records remain
 available to their participants after a connection is removed or a user is
 blocked; those states do not permit creating a new conversation.
@@ -174,6 +181,12 @@ POST /conversations
 GET  /conversations
 GET  /conversations/{conversation_id}
 ```
+
+Conversation-list items include database-backed `unread_count` values.
+`GET /api/v1/notifications/unread-count` returns the authenticated user's total
+unread incoming-message count. Messages in Sent or Delivered state count;
+messages in Read state do not. The endpoint and conversation list aggregate
+counts in PostgreSQL without loading message histories.
 
 The conversation module does not implement message delivery.
 
@@ -252,18 +265,82 @@ Database credentials belong in the local `.env`. The async PostgreSQL engine
 uses `asyncpg`, SSL, disabled prepared-statement caching, and a bounded pool
 with connection pre-ping for Supabase transaction pooling. The default pool
 allows five persistent connections and five temporary overflow connections
-per application worker. Verify configured database connectivity with:
+per application worker. Verify test database connectivity with:
 
 ```powershell
 uv run pytest tests/integration/test_database_connection.py
 ```
 
-Repository integration tests require an isolated PostgreSQL test database in
-`TEST_DATABASE_URL`; they never use the application `.env` database:
+Repository integration tests require a dedicated PostgreSQL database on a
+loopback address. The test fixture rejects non-PostgreSQL URLs, remote hosts,
+and any role/database other than `relay_test`. It never uses the application
+`.env` connection. Create the role and an initially empty database on a local
+PostgreSQL server using a local administrator account; do not use development
+or production credentials or point this URL at a shared database.
+
+For a disposable local Windows cluster, create a new dedicated data directory
+(stop if it already exists), initialize PostgreSQL, bind it only to loopback,
+and create the test database:
 
 ```powershell
-$env:TEST_DATABASE_URL = "postgresql+asyncpg://..."
+$pgBin = "C:\Program Files\PostgreSQL\18\bin"
+$dataRoot = Join-Path $env:LOCALAPPDATA "RelayChat\postgres-test"
+if (Test-Path $dataRoot) { throw "Refusing to reuse an existing data directory." }
+New-Item -ItemType Directory -Path $dataRoot | Out-Null
+& "$pgBin\initdb.exe" -D "$dataRoot\data" -U relay_test --auth-local=trust --auth-host=trust --encoding=UTF8 --locale=C --no-instructions
+& "$pgBin\pg_ctl.exe" -D "$dataRoot\data" -l "$dataRoot\postgresql.log" -o "-h 127.0.0.1 -p 55432 -c listen_addresses=127.0.0.1 -c ssl=off" start
+& "$pgBin\createdb.exe" -h 127.0.0.1 -p 55432 -U relay_test -O relay_test relay_test
+```
+
+Trust authentication is only for this disposable, loopback-bound test
+instance; never bind it to a public interface. Set the test connection URL:
+
+```powershell
+$env:TEST_DATABASE_URL = "postgresql+asyncpg://relay_test@127.0.0.1:55432/relay_test"
+$env:TEST_DB_SSL = "disable"
+```
+
+If using a separately secured local server instead, use a unique test-only
+password and URL-encode it in `TEST_DATABASE_URL`. Never copy credentials
+from `backend/.env`.
+
+The Alembic CLI reads the standard `DB_*` settings. Set all database values
+explicitly to the same test-only target before invoking it, so it cannot fall
+back to `backend/.env`:
+
+```powershell
+$env:DB_USER = "relay_test"
+$env:DB_PASSWORD = "not-used-with-local-trust-auth"
+$env:DB_HOST = "127.0.0.1"
+$env:DB_PORT = "55432"
+$env:DB_NAME = "relay_test"
+$env:DB_SSL = "disable"
+uv run alembic upgrade head
+uv run alembic current
+```
+
+The integration session fixture encloses each test in an outer transaction
+and rolls it back after the test, including when repository code commits
+through a savepoint. Verify the migration head and run the complete
+integration suite with:
+
+```powershell
 uv run pytest tests/integration
+```
+
+The PostgreSQL-backed end-to-end acceptance workflows exercise authentication,
+discovery and blocking, connection cooldown/removal, conversations, message
+ownership and status transitions, WebSocket multi-device delivery, and offline
+history recovery through the real application routes and services:
+
+```powershell
+uv run pytest tests/integration/test_acceptance_workflows.py
+```
+
+Run the full backend suite with the same test database environment:
+
+```powershell
+uv run pytest
 ```
 
 Create, inspect, apply, or roll back migrations with:

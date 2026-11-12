@@ -56,9 +56,12 @@ class MemoryConversationRepository:
         self.pairs[pair] = conversation
         self.conversations[conversation.id] = conversation
 
-    async def list_for_user(self, user_id: UUID) -> list[Conversation]:
+    async def list_for_user_with_unread_counts(
+        self,
+        user_id: UUID,
+    ) -> list[tuple[Conversation, int]]:
         return [
-            conversation
+            (conversation, 0)
             for conversation in self.conversations.values()
             if user_id in {conversation.user_low_id, conversation.user_high_id}
         ]
@@ -131,6 +134,7 @@ async def test_only_participants_can_retrieve_and_list_conversations(
 
     assert await service.get_conversation(UUID(str(conversation.id)), recipient_id)
     assert len((await service.list_conversations(user_id)).items) == 1
+    assert (await service.list_conversations(user_id)).items[0].unread_count == 0
     assert not (await service.list_conversations(stranger_id)).items
 
     with pytest.raises(ConversationNotFoundError):

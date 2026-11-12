@@ -2,6 +2,7 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Annotated
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -56,6 +57,28 @@ app = FastAPI(
 app.include_router(api_router)
 
 
+def _route_pattern(request: Request) -> str:
+    route = request.scope.get("route")
+    path = getattr(route, "path", None)
+    return path if isinstance(path, str) else "unknown"
+
+
+def _request_log_context(request: Request) -> dict[str, str]:
+    return {
+        "request_id": request.state.request_id,
+        "method": request.method,
+        "route": _route_pattern(request),
+    }
+
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):  # type: ignore[no-untyped-def]
+    request.state.request_id = uuid4().hex
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request.state.request_id
+    return response
+
+
 @app.get("/health", tags=["health"])
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
@@ -80,6 +103,52 @@ async def readiness_check(
             content={"status": "not_ready"},
         )
     return JSONResponse(content={"status": "ready"})
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_error_response(
+    request: Request,
+    error: SQLAlchemyError,
+) -> JSONResponse:
+    logger.exception(
+        "Database request failed",
+        extra={
+            "event_type": "database_request_failed",
+            "error_type": type(error).__name__,
+            **_request_log_context(request),
+        },
+    )
+    return JSONResponse(
+        status_code=503,
+        headers={"X-Request-ID": request.state.request_id},
+        content={
+            "detail": "Database temporarily unavailable.",
+            "request_id": request.state.request_id,
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_error_response(
+    request: Request,
+    error: Exception,
+) -> JSONResponse:
+    logger.exception(
+        "Unhandled request exception",
+        extra={
+            "event_type": "unhandled_request_exception",
+            "error_type": type(error).__name__,
+            **_request_log_context(request),
+        },
+    )
+    return JSONResponse(
+        status_code=500,
+        headers={"X-Request-ID": request.state.request_id},
+        content={
+            "detail": "Relay server error.",
+            "request_id": request.state.request_id,
+        },
+    )
 
 
 @app.exception_handler(RequestValidationError)

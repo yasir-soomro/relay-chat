@@ -12,7 +12,6 @@ from backend.services.connection_service import (
     ConnectionAlreadyExistsError,
     ConnectionBlockedError,
     ConnectionCooldownActiveError,
-    ConnectionCooldownNotConfiguredError,
     ConnectionPermissionError,
     ConnectionService,
     ConnectionUserNotFoundError,
@@ -138,10 +137,10 @@ def participants() -> tuple[UUID, UUID, UUID]:
 
 def new_service(
     participants: tuple[UUID, UUID, UUID],
-    cooldown_seconds: int | None = None,
+    cooldown_hours: int = 168,
 ) -> tuple[ConnectionService, MemoryConnectionRepository]:
     repository = MemoryConnectionRepository(set(participants))
-    return ConnectionService(repository, cooldown_seconds), repository
+    return ConnectionService(repository, cooldown_hours), repository
 
 
 @pytest.mark.asyncio
@@ -187,27 +186,34 @@ async def test_only_recipient_can_accept_or_reject_pending_request(
 
 
 @pytest.mark.asyncio
-async def test_rejection_retry_requires_configuration_and_elapsed_cooldown(
+async def test_rejection_retry_observes_cooldown_and_original_requester(
     participants: tuple[UUID, UUID, UUID],
 ) -> None:
     first, second, _ = participants
     service, repository = new_service(participants)
     request = await service.request_connection(first, second)
-    await service.reject_request(request.id, second)
+    rejected = await service.reject_request(request.id, second)
+    rejection_time = rejected.rejected_at
+    assert rejection_time is not None
+    assert rejection_time.tzinfo == UTC
 
-    with pytest.raises(ConnectionCooldownNotConfiguredError):
+    with pytest.raises(ConnectionCooldownActiveError) as error:
         await service.request_connection(first, second)
+    assert error.value.retry_at == rejection_time + timedelta(hours=168)
 
-    configured_service = ConnectionService(repository, cooldown_seconds=30)
-    with pytest.raises(ConnectionCooldownActiveError):
-        await configured_service.request_connection(first, second)
-
-    rejected = repository.connections[(min(first, second), max(first, second))]
-    rejected.rejected_at = datetime.now(UTC) - timedelta(seconds=31)
-    retried = await configured_service.request_connection(first, second)
+    stored = repository.connections[(min(first, second), max(first, second))]
+    stored.rejected_at = rejection_time - timedelta(hours=168)
+    retried = await service.request_connection(first, second)
     assert retried.id == request.id
     assert retried.status == ConnectionStatus.PENDING
     assert retried.rejected_at is None
+
+    rejected_again = await service.reject_request(request.id, second)
+    assert rejected_again.rejected_at is not None
+    assert rejected_again.rejected_at > rejection_time
+    with pytest.raises(ConnectionCooldownActiveError) as error:
+        await service.request_connection(first, second)
+    assert error.value.retry_at == rejected_again.rejected_at + timedelta(hours=168)
 
 
 @pytest.mark.asyncio
@@ -215,7 +221,7 @@ async def test_only_original_requester_can_retry_a_rejected_request(
     participants: tuple[UUID, UUID, UUID],
 ) -> None:
     first, second, _ = participants
-    service, repository = new_service(participants, cooldown_seconds=0)
+    service, repository = new_service(participants)
     request = await service.request_connection(first, second)
     await service.reject_request(request.id, second)
 
@@ -226,6 +232,21 @@ async def test_only_original_requester_can_retry_a_rejected_request(
         repository.connections[(min(first, second), max(first, second))].status
         == "rejected"
     )
+
+
+@pytest.mark.asyncio
+async def test_rejection_retry_uses_configured_cooldown_hours(
+    participants: tuple[UUID, UUID, UUID],
+) -> None:
+    first, second, _ = participants
+    service, _ = new_service(participants, cooldown_hours=72)
+    request = await service.request_connection(first, second)
+    rejected = await service.reject_request(request.id, second)
+
+    assert rejected.rejected_at is not None
+    with pytest.raises(ConnectionCooldownActiveError) as error:
+        await service.request_connection(first, second)
+    assert error.value.retry_at == rejected.rejected_at + timedelta(hours=72)
 
 
 @pytest.mark.asyncio

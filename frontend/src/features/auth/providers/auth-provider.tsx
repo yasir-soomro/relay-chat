@@ -32,6 +32,7 @@ type AuthContextValue = {
   signIn: (values: LoginValues) => Promise<void>;
   signOut: () => Promise<void>;
   restoreSession: () => Promise<void>;
+  getFreshAccessToken: () => Promise<string | null>;
   authenticatedFetch: (
     input: RequestInfo | URL,
     init?: RequestInit,
@@ -112,6 +113,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
     }
   }, [refreshSessionToken, updateAccessToken]);
+
+  const getFreshAccessToken = useCallback(async () => {
+    try {
+      const tokens = await refreshSessionToken();
+      return tokens?.access_token ?? null;
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Relay could not refresh your session.",
+      );
+      throw cause;
+    }
+  }, [refreshSessionToken]);
 
   const signIn = useCallback(
     async (values: LoginValues) => {
@@ -287,6 +302,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       restoreSession,
+      getFreshAccessToken,
       authenticatedFetch,
     }),
     [
@@ -297,6 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signOut,
       restoreSession,
+      getFreshAccessToken,
       authenticatedFetch,
     ],
   );

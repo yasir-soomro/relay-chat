@@ -84,6 +84,16 @@ class MemoryUserRepository:
             setattr(user, field, value)
         return user
 
+    async def discover_users(
+        self,
+        requester_id: UUID,
+        *,
+        query: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> list[User]:
+        raise AssertionError("User discovery is not part of authentication tests")
+
     async def commit(self) -> None:
         return None
 

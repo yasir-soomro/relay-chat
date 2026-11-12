@@ -127,7 +127,7 @@ No additional capabilities are committed by this specification. Examples not def
 | BR-001 | An authenticated user may view a profile without an accepted connection, subject to the blocking rule in BR-006. Unauthenticated profile viewing is not allowed. |
 | BR-002 | Only the owner of a profile may edit that profile. |
 | BR-003 | An accepted connection is required for users to send new private messages to one another. |
-| BR-004 | A rejected request may be retried only after a cooldown has elapsed. The cooldown duration and how it is measured are **Open**. |
+| BR-004 | A rejected request may be retried by its original requester after 168 hours have elapsed from the UTC rejection timestamp. A retry before expiry is denied and reports when it becomes available. |
 | BR-005 | Removing a connection does not erase its chat history, but neither former connection may send new messages to the other while the connection is removed. |
 | BR-006 | A block prevents messages in both directions and hides each blocked user's profile from the other. Blocking terminates an accepted connection and cancels pending requests between the users without deleting chat history. Unblocking restores profile visibility but does not restore connection status; a new request must be accepted before messaging resumes. |
 | BR-007 | A user may edit or delete only messages they authored. Editing replaces the current content without retaining prior versions. Deletion retains the message record as a visible deleted-message placeholder and clears its content; no deletion expiry is defined. |
@@ -204,7 +204,7 @@ The following criteria provide externally observable checks for the V1 requireme
 | AC-001 | Given an authenticated user, when they discover a user with no accepted connection, then they can view that user's public profile unless either user has blocked the other. (FR-002, FR-003, BR-001, BR-006) |
 | AC-002 | Given two users, when one edits their own profile, then the edit is allowed; when they attempt to edit the other's profile, then the edit is not allowed. (FR-004, BR-002) |
 | AC-003 | Given two users without an accepted connection, when one sends a connection request, then the recipient can accept or reject it. (FR-005–FR-007) |
-| AC-004 | Given a rejected request, when the cooldown has not elapsed, then retry is not yet allowed; after the applicable cooldown elapses, retry is allowed. The test duration must await the decision in BR-004. (FR-008, BR-004) |
+| AC-004 | Given a rejected request, when the original requester retries before 168 hours have elapsed, then retry is denied with its UTC availability timestamp; at or after expiry, retry is allowed. A subsequent rejection starts a new 168-hour cooldown. (FR-008, BR-004) |
 | AC-005 | Given an accepted connection, when either user sends a message and no block applies, then the other user can receive it as a private conversation message. (FR-011, BR-003, NFR-007, NFR-008) |
 | AC-006 | Given users without an accepted connection, or users blocked from one another, when either user attempts to send a message, then no new message is sent to the other. (FR-010, FR-011, BR-003, BR-006) |
 | AC-007 | Given an accepted connection with chat history, when either user removes the connection, then the history remains and neither user can send a new message to the other. (FR-009, BR-005) |
@@ -233,11 +233,10 @@ The following criteria provide externally observable checks for the V1 requireme
 
 The following items require product decisions before dependent details can be finalized:
 
-1. The duration, start point, and measurement of the rejected-request cooldown (BR-004).
-2. Offline message expiry and retry behavior (BR-008).
-3. Delivery availability targets beyond durable persistence and REST-history recovery (BR-008).
-5. Cross-device behavior for profile and connection changes, edits, deletions, and sign-out (BR-010).
-6. Additional account lifecycle workflows beyond the approved backend REST authentication contract (for example, email verification or password recovery), which remain out of scope unless separately approved.
-7. Whether additional messaging capabilities or user-safety features are part of V1.
-8. Performance, availability, scale, accessibility, data retention, and compliance targets.
-9. User-facing content and notifications for connection and messaging events.
+1. Offline message expiry and retry behavior (BR-008).
+2. Delivery availability targets beyond durable persistence and REST-history recovery (BR-008).
+3. Cross-device behavior for profile and connection changes, edits, deletions, and sign-out (BR-010).
+4. Additional account lifecycle workflows beyond the approved backend REST authentication contract (for example, email verification or password recovery), which remain out of scope unless separately approved.
+5. Whether additional messaging capabilities or user-safety features are part of V1.
+6. Performance, availability, scale, accessibility, data retention, and compliance targets.
+7. User-facing content and notifications for connection and messaging events.

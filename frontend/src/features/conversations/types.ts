@@ -7,8 +7,12 @@ export type Conversation = {
   created_at: string;
 };
 
+export type ConversationListItem = Conversation & {
+  unread_count: number;
+};
+
 export type ConversationList = {
-  items: Conversation[];
+  items: ConversationListItem[];
 };
 
 export type ConversationEntry = {

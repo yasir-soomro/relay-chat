@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { SiteNavigationItem } from "@/types/site";
+import { useOptionalNotifications } from "@/features/notifications/providers/notifications-provider";
 
 type NavigationLinksProps = {
   currentHref?: string;
@@ -17,6 +18,7 @@ export function NavigationLinks({
 }: NavigationLinksProps) {
   const pathname = usePathname();
   const activeHref = currentHref ?? pathname;
+  const { unreadCount } = useOptionalNotifications();
 
   return (
     <ul
@@ -30,6 +32,11 @@ export function NavigationLinks({
         <li key={item.href}>
           <Link
             aria-current={item.href === activeHref ? "page" : undefined}
+            aria-label={
+              item.href === "/notifications" && unreadCount > 0
+                ? `${item.label}, ${unreadCount} unread messages`
+                : undefined
+            }
             className={`block rounded-lg px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-moss ${
               item.href === activeHref
                 ? "bg-soft text-ink"
@@ -41,7 +48,17 @@ export function NavigationLinks({
             }`}
             href={item.href}
           >
-            {item.label}
+            <span className="flex items-center justify-between gap-3">
+              {item.label}
+              {item.href === "/notifications" && unreadCount > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="inline-flex min-w-5 items-center justify-center rounded-full bg-moss px-1.5 py-0.5 text-xs font-semibold text-white"
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              ) : null}
+            </span>
           </Link>
         </li>
       ))}

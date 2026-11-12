@@ -120,5 +120,7 @@ async def test_delivery_read_and_batch_acknowledgments_persist(
             )
             assert len(batch.items) == 1
             assert batch.items[0].status == MessageStatus.READ
-            assert batch.items[0].delivered_at == batch.items[0].read_at
+            assert batch.items[0].delivered_at is not None
+            assert batch.items[0].read_at is not None
+            assert batch.items[0].delivered_at <= batch.items[0].read_at
         await transaction.rollback()

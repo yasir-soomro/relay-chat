@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import ClassVar, Literal, Protocol
 from uuid import UUID
 
@@ -94,6 +95,7 @@ class UserRepository:
     ) -> User:
         for field, value in fields.items():
             setattr(user, field, value)
+        user.updated_at = datetime.now(UTC)
         await self._flush()
         return user
 

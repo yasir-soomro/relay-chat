@@ -186,6 +186,8 @@ primitive should not own feature-specific API calls or business policy.
   connection list, block/unblock and remove confirmation controls.
 - **Conversations:** conversation list item, participant identity, unread
   state only if provided by a contract, and conversation header.
+- **Notifications:** database-backed unread counts, accessible in-app
+  message toasts, and notification navigation.
 - **Messaging:** message list, message item, status label, composer, edit and
   delete actions, history pagination and recovery state.
 
@@ -312,12 +314,25 @@ contract includes:
 | Profile | `GET /users/me`; `PATCH /users/me`; `GET /users/{user_id}` |
 | Connections | `POST /connections/requests`; `GET /connections/requests/incoming`; `GET /connections/requests/outgoing`; `POST /connections/requests/{connection_id}/accept`; `POST /connections/requests/{connection_id}/reject`; `DELETE /connections/{other_user_id}`; `POST /connections/{other_user_id}/block`; `DELETE /connections/{other_user_id}/block`; `GET /connections` |
 | Conversations | `POST /conversations`; `GET /conversations`; `GET /conversations/{conversation_id}` |
+| Notifications | `GET /api/v1/notifications/unread-count` |
 | Messages | `POST /conversations/{conversation_id}/messages`; `GET /conversations/{conversation_id}/messages`; `GET /messages/{message_id}`; `PATCH /messages/{message_id}`; `DELETE /messages/{message_id}`; `POST /messages/{message_id}/delivery`; `POST /messages/{message_id}/read`; `POST /conversations/{conversation_id}/messages/delivery`; `POST /conversations/{conversation_id}/messages/read` |
 
 History uses `limit` (1-100; default 50) and opaque `cursor`. Pages are
 newest-first with stable `(created_at, id)` ordering. Follow `next_cursor`
 until null and merge recovered records by message ID. Do not infer or add
 query parameters or response fields.
+
+The conversation list includes an integer `unread_count` on each item. The
+authenticated unread-count endpoint returns
+`{ "total_unread_count": <non-negative integer> }`. Use these server counts
+instead of loading message histories to calculate unread indicators. Refresh
+counts after authentication/session restoration, after WebSocket subscription
+restoration, and when a `message.status` event confirms `read`. For a unique
+`message.received` event from another user, increment the matching count
+immediately and reconcile it with the REST counts. Deduplicate received events
+by message ID and do not create toasts from REST refreshes or `message.sent`.
+Toasts must not expose message content, must be dismissible by keyboard, and
+must respect reduced-motion preferences.
 
 The backend returns standard HTTP errors. Preserve useful user-facing error
 messages where safe, but do not display raw exception traces, database details,
@@ -346,6 +361,13 @@ Supported server events are `auth.ok`, `subscribed`, `unsubscribed`,
 `message.sent`, `message.received`, `message.status`, and `error`. Follow the
 Backend Specification's event schemas and error behavior; unknown fields are
 not accepted.
+
+Use `message.received` for incoming-message toasts and immediate optimistic
+unread updates only when `message.sender_id` differs from the authenticated
+user. Use confirmed `message.status` events with status `read` to synchronize
+unread counts. Reconcile over the documented unread-count and conversation
+list REST APIs after subscription restoration; do not add event types or
+recover unread counts by scanning full message history.
 
 Persisting a message precedes backend broadcast. Use the same
 `client_message_id` for a retried WebSocket send so the backend returns the

@@ -212,6 +212,10 @@ Results are ordered by username ascending. The authenticated user and every user
 
 The REST surface must support the product capabilities in the root specification, including user discovery/profile access and owner editing, connection requests and decisions, connection removal and blocking, and authorized message operations. The precise API shape is not defined by this document.
 
+### Approved unread-count contract
+
+`GET /api/v1/notifications/unread-count` requires authentication and returns `{ "total_unread_count": <integer> }`. It counts persisted messages whose sender is the other participant in a conversation containing the authenticated user and whose global status is not `read`. The authenticated identity comes from the current principal. The existing conversation-list response includes `unread_count` on each conversation item; conversation create/detail responses are unchanged. Both counts are database aggregates and do not load message histories. A recipient's global transition to `read` removes that message from subsequent counts. No notifications table or push/history mechanism is introduced.
+
 ### WebSockets
 
 - WebSocket endpoint: `GET /ws` (WebSocket upgrade).
@@ -239,6 +243,7 @@ Group services around product use cases rather than individual routes or databas
 - **Identity/profile use cases:** user discovery, public profile access, and owner-only profile updates (FR-002–FR-004; BR-001–BR-002).
 - **Connection use cases:** request, accept, reject, retry after the approved cooldown, remove, and block (FR-005–FR-010; BR-004–BR-006).
 - **Messaging use cases:** private message creation, authorized history access, author-only edit/delete, and supported message statuses (FR-011–FR-015; BR-003, BR-007, BR-009).
+- **Notification/count use cases:** authenticated unread-message totals and per-conversation unread counts, derived from persisted message status without loading message histories.
 - **Delivery/device use cases:** offline delivery and multiple active devices (FR-014, FR-016; BR-008, BR-010).
 
 These are responsibility groupings, not a requirement to create exactly four service classes.
@@ -251,9 +256,9 @@ Service operations must:
 4. Coordinate persistence and transaction boundaries.
 5. Return explicit results for the route/transport layer to serialize.
 
-The root specification marks the rejected-request cooldown duration, offline message expiry/retry limits, and some cross-device behavior as open. Services must not embed guessed values or behavior for those decisions. Messages are persisted before delivery and remain available for recovery through paginated REST conversation history; WebSocket event replay is not used. Message statuses are persisted only as Sent, Delivered, or Read; Sending is client-side transient. Acknowledgment by any recipient device advances Sent to Delivered, and a recipient read acknowledgment advances Sent or Delivered to Read, recording delivery if needed. Global status changes synchronize to connected recipient devices; statuses do not regress and repeated acknowledgments are idempotent. The approved BR-007 edit/deletion behavior is defined in the root specification.
+The root specification leaves offline message expiry/retry limits and some cross-device behavior open. Services must not embed guessed values or behavior for those decisions. Messages are persisted before delivery and remain available for recovery through paginated REST conversation history; WebSocket event replay is not used. Message statuses are persisted only as Sent, Delivered, or Read; Sending is client-side transient. Acknowledgment by any recipient device advances Sent to Delivered, and a recipient read acknowledgment advances Sent or Delivered to Read, recording delivery if needed. Global status changes synchronize to connected recipient devices; statuses do not regress and repeated acknowledgments are idempotent. The approved BR-007 edit/deletion behavior is defined in the root specification.
 
-Connection records represent the current state for a canonical unordered user pair and are retained when a connection is removed. Directional block records are independent. Blocking cancels pending requests and marks an accepted connection removed while retaining any conversation/history data. Unblocking removes the block only; it does not restore the former connection. A new accepted request is required before messaging resumes. The retry cooldown has no default: rejected-request retries return an explicit configuration error until an approved `CONNECTION_REQUEST_COOLDOWN_SECONDS` value is configured.
+Connection records represent the current state for a canonical unordered user pair and are retained when a connection is removed. Directional block records are independent. Blocking cancels pending requests and marks an accepted connection removed while retaining any conversation/history data. Unblocking removes the block only; it does not restore the former connection. A new accepted request is required before messaging resumes. Rejected requests retain their UTC rejection timestamp. Only the original requester can retry, after the configured `CONNECTION_REQUEST_COOLDOWN_HOURS` (default 168) has elapsed; a retry before expiry returns HTTP 409 with error code `connection_request_cooldown_active` and a UTC `retry_at`. A subsequent rejection starts a fresh cooldown.
 
 ## 9. Error handling, validation, and security
 
@@ -342,7 +347,7 @@ The following decisions must be recorded before implementing the affected contra
 | WebSocket authentication handshake, event names/payloads, acknowledgements, errors, reconnection, ordering, and delivery model | WebSocket routes, schemas, services | Must remain consistent with root decisions for delivery and statuses. |
 | Multi-instance WebSocket coordination or messaging infrastructure | WebSocket runtime and offline delivery | No broker or coordination technology is selected by this specification. |
 | Data model details, transaction boundaries, key strategy, indexing, and retention | Models, repositories, migrations | Preserve privacy, ownership, accepted-connection rules, and removed-connection history. |
-| Root product decisions: cooldown duration; edit/delete visibility; offline expiry/retry and guarantees; status semantics; cross-device synchronization | Services, APIs, persistence, tests | See the open decisions in Section 12 of the root specification. |
+| Root product decisions: edit/delete visibility; offline expiry/retry and guarantees; status semantics; cross-device synchronization | Services, APIs, persistence, tests | See the open decisions in Section 12 of the root specification. |
 | Configuration and secret source; logging format/transport and correlation identifiers | Core, operations | Must not expose secrets or private message content. |
 | Test PostgreSQL provisioning/reset strategy; fixtures and migration use | Integration tests, developer setup, CI | Integration tests must use real PostgreSQL. |
 | Lint, formatting, typing, coverage, and CI tools and thresholds | `pyproject.toml`, CI | Select explicitly; no thresholds are implied here. |

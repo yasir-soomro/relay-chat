@@ -6,6 +6,7 @@ from backend.repository.conversation_repository import (
     ConversationRepositoryProtocol,
 )
 from backend.schemas.conversation import (
+    ConversationListItemResponse,
     ConversationListResponse,
     ConversationResponse,
 )
@@ -68,11 +69,14 @@ class ConversationService:
         return ConversationResponse.model_validate(conversation), True
 
     async def list_conversations(self, user_id: UUID) -> ConversationListResponse:
-        conversations = await self._repository.list_for_user(user_id)
+        conversations = await self._repository.list_for_user_with_unread_counts(user_id)
         return ConversationListResponse(
             items=[
-                ConversationResponse.model_validate(conversation)
-                for conversation in conversations
+                ConversationListItemResponse(
+                    **ConversationResponse.model_validate(conversation).model_dump(),
+                    unread_count=unread_count,
+                )
+                for conversation, unread_count in conversations
             ]
         )
 

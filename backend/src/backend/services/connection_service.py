@@ -49,13 +49,9 @@ class ConnectionAlreadyExistsError(ConnectionManagementError):
     pass
 
 
-class ConnectionCooldownNotConfiguredError(ConnectionManagementError):
-    pass
-
-
 class ConnectionCooldownActiveError(ConnectionManagementError):
-    def __init__(self, available_at: datetime) -> None:
-        self.available_at = available_at
+    def __init__(self, retry_at: datetime) -> None:
+        self.retry_at = retry_at
         super().__init__("The request cooldown has not elapsed")
 
 
@@ -71,10 +67,10 @@ class ConnectionService:
     def __init__(
         self,
         repository: ConnectionRepositoryProtocol,
-        cooldown_seconds: int | None = None,
+        cooldown_hours: int = 168,
     ) -> None:
         self._repository = repository
-        self._cooldown_seconds = cooldown_seconds
+        self._cooldown_hours = cooldown_hours
 
     async def request_connection(
         self,
@@ -232,15 +228,11 @@ class ConnectionService:
     ) -> Connection:
         if requester_id != connection.requester_id:
             raise InvalidConnectionTransitionError
-        if self._cooldown_seconds is None:
-            raise ConnectionCooldownNotConfiguredError
         if connection.rejected_at is None:
             raise InvalidConnectionTransitionError
-        available_at = connection.rejected_at + timedelta(
-            seconds=self._cooldown_seconds
-        )
-        if now < available_at:
-            raise ConnectionCooldownActiveError(available_at)
+        retry_at = connection.rejected_at + timedelta(hours=self._cooldown_hours)
+        if now < retry_at:
+            raise ConnectionCooldownActiveError(retry_at)
         await self._repository.retry_request(
             connection,
             requester_id,

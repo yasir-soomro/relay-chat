@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ConversationCreate(BaseModel):
@@ -19,5 +19,9 @@ class ConversationResponse(BaseModel):
     created_at: datetime
 
 
+class ConversationListItemResponse(ConversationResponse):
+    unread_count: int = Field(ge=0)
+
+
 class ConversationListResponse(BaseModel):
-    items: list[ConversationResponse]
+    items: list[ConversationListItemResponse]

@@ -106,8 +106,7 @@ async function request(
   const body: unknown =
     response.status === 204 ? null : await response.json().catch(() => null);
   if (!response.ok) {
-    const detail =
-      isRecord(body) && typeof body.detail === "string" ? body.detail : "";
+    const detail = isRecord(body) ? body.detail : null;
     if (response.status === 404) {
       throw new ConnectionRequestError(
         response.status,
@@ -117,10 +116,18 @@ async function request(
       );
     }
     if (response.status === 409) {
-      if (detail === "Connection request cooldown has not elapsed") {
+      if (
+        isRecord(detail) &&
+        detail.code === "connection_request_cooldown_active" &&
+        typeof detail.retry_at === "string"
+      ) {
+        const retryAt = new Date(detail.retry_at);
+        const message = Number.isNaN(retryAt.getTime())
+          ? "You need to wait before sending another request to this member."
+          : `You can send another request after ${retryAt.toLocaleString()}.`;
         throw new ConnectionRequestError(
           response.status,
-          "You need to wait before sending another request to this member.",
+          message,
         );
       }
       throw new ConnectionRequestError(
@@ -131,9 +138,7 @@ async function request(
     if (response.status === 503) {
       throw new ConnectionRequestError(
         response.status,
-        detail === "Connection request cooldown is not configured"
-          ? "Connection requests are temporarily unavailable."
-          : "Relay is temporarily unavailable. Please try again shortly.",
+        "Relay is temporarily unavailable. Please try again shortly.",
       );
     }
     if (response.status === 403) {

@@ -1,15 +1,15 @@
 import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-
-from backend.DB.session import dispose_engine, get_engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 
 @pytest.mark.asyncio
-async def test_supabase_connection_executes_select_one() -> None:
-    engine = get_engine()
+async def test_postgres_connection_executes_select_one(
+    postgres_test_engine: AsyncEngine,
+) -> None:
     try:
-        async with engine.connect() as connection:
+        async with postgres_test_engine.connect() as connection:
             result = await connection.execute(text("SELECT 1"))
             assert result.scalar_one() == 1
     except SQLAlchemyError as error:
@@ -24,5 +24,3 @@ async def test_supabase_connection_executes_select_one() -> None:
         raise AssertionError(
             f"Database SELECT 1 failed ({type(error).__name__}); connection details omitted."
         ) from None
-    finally:
-        await dispose_engine()

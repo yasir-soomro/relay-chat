@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -125,11 +125,13 @@ class MessageRepository:
 
     async def update_content(self, message: Message, content: str) -> None:
         message.content = content
+        message.updated_at = datetime.now(UTC)
         await self._session.flush()
 
     async def soft_delete(self, message: Message, deleted_at: datetime) -> None:
         message.content = None
         message.deleted_at = deleted_at
+        message.updated_at = deleted_at
         await self._session.flush()
 
     async def commit(self) -> None:

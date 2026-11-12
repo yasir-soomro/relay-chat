@@ -17,7 +17,6 @@ from backend.services.connection_service import (
     ConnectionAlreadyExistsError,
     ConnectionBlockedError,
     ConnectionCooldownActiveError,
-    ConnectionCooldownNotConfiguredError,
     ConnectionManagementError,
     ConnectionNotFoundError,
     ConnectionPermissionError,
@@ -50,15 +49,13 @@ def _raise_http_error(error: ConnectionManagementError) -> NoReturn:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Connection or user not found",
         ) from None
-    if isinstance(error, ConnectionCooldownNotConfiguredError):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Connection request cooldown is not configured",
-        ) from None
     if isinstance(error, ConnectionCooldownActiveError):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Connection request cooldown has not elapsed",
+            detail={
+                "code": "connection_request_cooldown_active",
+                "retry_at": error.retry_at.isoformat(),
+            },
         ) from None
     if isinstance(
         error,

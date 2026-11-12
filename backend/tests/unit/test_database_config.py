@@ -1,5 +1,6 @@
 import pytest
 from pydantic import SecretStr, ValidationError
+from sqlalchemy.pool.impl import AsyncAdaptedQueuePool
 
 from backend.core.config import Settings
 from backend.DB.session import build_database_url, get_engine
@@ -20,6 +21,38 @@ def test_settings_validate_database_configuration() -> None:
     assert settings.db_port == 5432
     assert settings.db_ssl == "require"
     assert settings.ws_auth_timeout_seconds == 10
+    assert settings.connection_request_cooldown_hours == 168
+
+
+@pytest.mark.parametrize("hours", [0, -1])
+def test_settings_reject_nonpositive_connection_request_cooldown(
+    hours: int,
+) -> None:
+    with pytest.raises(ValidationError):
+        Settings(
+            db_user="relay-test",
+            db_password="test-password",
+            db_host="localhost",
+            db_port=5432,
+            db_name="relay-test",
+            connection_request_cooldown_hours=hours,
+        )
+
+
+def test_settings_load_connection_request_cooldown_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("CONNECTION_REQUEST_COOLDOWN_HOURS", "72")
+
+    settings = Settings(
+        db_user="relay-test",
+        db_password=SecretStr("test-password"),
+        db_host="localhost",
+        db_port=5432,
+        db_name="relay-test",
+    )
+
+    assert settings.connection_request_cooldown_hours == 72
 
 
 @pytest.mark.parametrize("timeout", [0, -1])
@@ -102,8 +135,9 @@ async def test_application_engine_uses_bounded_pre_pinged_pool(
     get_engine.cache_clear()
     engine = get_engine()
     try:
+        assert isinstance(engine.pool, AsyncAdaptedQueuePool)
         assert engine.pool.size() == 5
-        assert engine.pool._max_overflow == 5
+        assert engine.pool._max_overflow == 5  # type: ignore[attr-defined]
         assert engine.pool._pre_ping is True
         assert engine.pool._recycle == 1800
     finally:

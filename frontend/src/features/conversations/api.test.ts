@@ -14,6 +14,7 @@ const conversation = {
   user_high_id: otherUserId,
   created_at: "2026-11-08T00:00:00Z",
 };
+const conversationListItem = { ...conversation, unread_count: 2 };
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -26,15 +27,17 @@ describe("conversation API", () => {
   it("lists conversations using the authenticated API", async () => {
     const authenticatedFetch = vi
       .fn()
-      .mockResolvedValue(jsonResponse({ items: [conversation] }));
+      .mockResolvedValue(jsonResponse({ items: [conversationListItem] }));
 
     await expect(listConversations(authenticatedFetch)).resolves.toEqual({
-      items: [conversation],
+      items: [conversationListItem],
     });
     expect(authenticatedFetch).toHaveBeenCalledWith(
       "/conversations",
       expect.objectContaining({ cache: "no-store" }),
     );
+    const [, init] = authenticatedFetch.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(init.headers).get("Accept")).toBe("application/json");
   });
 
   it("retrieves a conversation by its encoded id", async () => {
@@ -48,6 +51,45 @@ describe("conversation API", () => {
       "/conversations/conversation%2Fid",
       expect.objectContaining({ cache: "no-store" }),
     );
+    const [, init] = authenticatedFetch.mock.calls[0] as [string, RequestInit];
+    expect(new Headers(init.headers).get("Accept")).toBe("application/json");
+  });
+
+  it("rejects malformed detail payloads and preserves the response status", async () => {
+    const authenticatedFetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ id: conversation.id }));
+
+    await expect(
+      getConversation(authenticatedFetch, conversation.id),
+    ).rejects.toMatchObject({
+      name: "ConversationRequestError",
+      status: 502,
+      message:
+        "Relay returned an unexpected conversation response. Please try again.",
+    });
+  });
+
+  it("keeps not-found and unauthorized detail responses distinct from malformed data", async () => {
+    const notFoundFetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ detail: "Conversation or user not found" }, 404));
+    const unauthorizedFetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ detail: "Not authenticated" }, 401));
+
+    await expect(
+      getConversation(notFoundFetch, conversation.id),
+    ).rejects.toMatchObject({
+      status: 404,
+      message: "This conversation or member is no longer available.",
+    });
+    await expect(
+      getConversation(unauthorizedFetch, conversation.id),
+    ).rejects.toMatchObject({
+      status: 401,
+      message: "We could not complete this conversation request. Please try again.",
+    });
   });
 
   it("creates or retrieves a conversation using the backend recipient contract", async () => {
@@ -61,10 +103,13 @@ describe("conversation API", () => {
       "/conversations",
       expect.objectContaining({
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recipient_id: otherUserId }),
       }),
     );
+    const [, init] = authenticatedFetch.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get("Accept")).toBe("application/json");
+    expect(headers.get("Content-Type")).toBe("application/json");
   });
 
   it("reports backend connection and membership authorization errors", async () => {
@@ -85,10 +130,25 @@ describe("conversation API", () => {
   it("rejects unexpected response shapes instead of using guessed fields", async () => {
     const authenticatedFetch = vi
       .fn()
-      .mockResolvedValue(jsonResponse({ items: [{ id: conversation.id }] }));
+      .mockResolvedValue(
+        jsonResponse({ items: [{ ...conversation, unread_count: -1 }] }),
+      );
     await expect(listConversations(authenticatedFetch)).rejects.toMatchObject({
       name: "ConversationRequestError",
       status: 502,
+    });
+  });
+
+  it("rejects list items missing the backend unread count field", async () => {
+    const authenticatedFetch = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ items: [conversation] }));
+
+    await expect(listConversations(authenticatedFetch)).rejects.toMatchObject({
+      name: "ConversationRequestError",
+      status: 502,
+      message:
+        "Relay returned an unexpected conversation list. Please try again.",
     });
   });
 });

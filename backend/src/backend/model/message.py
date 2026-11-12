@@ -11,6 +11,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
@@ -65,6 +66,12 @@ class Message(Base):
             "conversation_id",
             "created_at",
             "id",
+        ),
+        Index(
+            "ix_messages_unread_conversation_sender",
+            "conversation_id",
+            "sender_id",
+            postgresql_where=text("status <> 'read'"),
         ),
     )
 

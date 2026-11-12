@@ -4,7 +4,6 @@ const apiPaths = [
   "auth",
   "users",
   "connections",
-  "conversations",
   "messages",
 ] as const;
 
@@ -16,22 +15,48 @@ const nextConfig: NextConfig = {
       process.env.RELAY_API_ORIGIN ?? "http://127.0.0.1:8000"
     ).replace(/\/+$/, "");
 
-    return [
-      {
-        source: "/api/v1/users/:path*",
-        destination: `${apiOrigin}/api/v1/users/:path*`,
-      },
-      ...apiPaths.flatMap((path) => [
+    return {
+      beforeFiles: [
         {
-          source: `/${path}`,
-          destination: `${apiOrigin}/${path}`,
+          source: "/conversations",
+          destination: `${apiOrigin}/conversations`,
+          has: [
+            { type: "header", key: "accept", value: "application/json" },
+          ],
         },
         {
-          source: `/${path}/:path*`,
-          destination: `${apiOrigin}/${path}/:path*`,
+          source: "/conversations/:path*",
+          destination: `${apiOrigin}/conversations/:path*`,
+          has: [
+            { type: "header", key: "accept", value: "application/json" },
+          ],
         },
-      ]),
-    ];
+      ],
+      afterFiles: [
+        {
+          source: "/ws",
+          destination: `${apiOrigin}/ws`,
+        },
+        {
+          source: "/api/v1/users/:path*",
+          destination: `${apiOrigin}/api/v1/users/:path*`,
+        },
+        {
+          source: "/api/v1/notifications/:path*",
+          destination: `${apiOrigin}/api/v1/notifications/:path*`,
+        },
+        ...apiPaths.flatMap((path) => [
+          {
+            source: `/${path}`,
+            destination: `${apiOrigin}/${path}`,
+          },
+          {
+            source: `/${path}/:path*`,
+            destination: `${apiOrigin}/${path}/:path*`,
+          },
+        ]),
+      ],
+    };
   },
 };
 

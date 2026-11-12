@@ -1,15 +1,45 @@
 @theme inline {
-  --color-ink: #17251f;
-  --color-muted: #63716a;
-  --color-canvas: #f7f8f3;
-  --color-surface: #ffffff;
-  --color-line: #e2e8de;
-  --color-accent: #d3f27a;
-  --color-accent-strong: #a7cf4f;
-  --color-moss: #234b3b;
-  --color-soft: #edf2e8;
+  --color-ink: var(--relay-ink);
+  --color-muted: var(--relay-muted);
+  --color-canvas: var(--relay-canvas);
+  --color-surface: var(--relay-surface);
+  --color-line: var(--relay-line);
+  --color-accent: var(--relay-accent);
+  --color-accent-strong: var(--relay-accent-strong);
+  --color-moss: var(--relay-moss);
+  --color-soft: var(--relay-soft);
+  --color-danger: var(--relay-danger);
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
   --radius-card: 1.5rem;
+  --radius-control: 0.875rem;
   --shadow-card: 0 24px 70px -38px rgb(23 37 31 / 34%);
+}
+
+:root {
+  --relay-ink: #17251f;
+  --relay-muted: #5d6a63;
+  --relay-canvas: #f7f8f3;
+  --relay-surface: #ffffff;
+  --relay-line: #dbe3d7;
+  --relay-accent: #d3f27a;
+  --relay-accent-strong: #789d2a;
+  --relay-moss: #234b3b;
+  --relay-soft: #edf2e8;
+  --relay-danger: #9e3028;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --relay-ink: #ecf3e8;
+  --relay-muted: #afbbb3;
+  --relay-canvas: #101713;
+  --relay-surface: #17231d;
+  --relay-line: #2d3d34;
+  --relay-accent: #c4ec64;
+  --relay-accent-strong: #c4ec64;
+  --relay-moss: #a8d7ba;
+  --relay-soft: #203128;
+  --relay-danger: #ffaaa1;
+  --shadow-card: 0 28px 80px -38px rgb(0 0 0 / 75%);
 }

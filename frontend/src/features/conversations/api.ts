@@ -1,5 +1,9 @@
 import type { AuthenticatedRequest } from "@/features/users/types";
-import type { Conversation, ConversationList } from "@/features/conversations/types";
+import type {
+  Conversation,
+  ConversationList,
+  ConversationListItem,
+} from "@/features/conversations/types";
 
 export class ConversationRequestError extends Error {
   readonly status: number;
@@ -43,7 +47,25 @@ function parseConversationList(value: unknown): ConversationList {
       "Relay returned an unexpected conversation list. Please try again.",
     );
   }
-  return { items: value.items.map(parseConversation) };
+  return {
+    items: value.items.map((item): ConversationListItem => {
+      if (
+        !isRecord(item) ||
+        typeof item.unread_count !== "number" ||
+        !Number.isInteger(item.unread_count) ||
+        item.unread_count < 0
+      ) {
+        throw new ConversationRequestError(
+          502,
+          "Relay returned an unexpected conversation list. Please try again.",
+        );
+      }
+      return {
+        ...parseConversation(item),
+        unread_count: item.unread_count,
+      };
+    }),
+  };
 }
 
 async function request(
@@ -53,9 +75,12 @@ async function request(
 ): Promise<unknown> {
   let response: Response;
   try {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", "application/json");
     response = await authenticatedFetch(path, {
       cache: "no-store",
       ...init,
+      headers,
     });
   } catch (error) {
     if (error instanceof ConversationRequestError) {

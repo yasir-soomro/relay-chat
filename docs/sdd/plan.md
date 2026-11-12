@@ -13,7 +13,7 @@ Work should proceed through the phases below in order. A phase may overlap with 
 **Sequence**
 
 1. Confirm the V1 scope against the root specification.
-2. Resolve or explicitly defer open decisions that affect the features about to be built. In particular, clarify authentication and account lifecycle expectations before relying on authenticated access; profile fields and visibility before finalizing profiles; and the rejected-request cooldown before verifying retries.
+2. Resolve or explicitly defer open decisions that affect the features about to be built. In particular, clarify authentication and account lifecycle expectations before relying on authenticated access and profile fields and visibility before finalizing profiles. The rejected-request cooldown is approved in BR-004.
 3. Define acceptance checks for any still-open behavior before it becomes a release dependency. Do not infer a rule from an open item.
 4. Establish a shared verification approach and an integrated development environment suitable for exercising complete user workflows.
 
@@ -37,7 +37,7 @@ Work should proceed through the phases below in order. A phase may overlap with 
 **Sequence**
 
 1. Deliver connection requests and recipient acceptance or rejection (FR-005–FR-007).
-2. Deliver retry after rejection once the cooldown rule is decided (FR-008, BR-004).
+2. Deliver retry after rejection using the approved 168-hour cooldown (FR-008, BR-004).
 3. Deliver connection removal, preserving existing chat history and preventing new messages (FR-009, BR-005).
 4. Deliver blocking, including bidirectional messaging prevention and mutual profile hiding (FR-010, BR-006).
 5. Verify connection and block rules before enabling messaging.

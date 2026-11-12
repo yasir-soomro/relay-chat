@@ -12,7 +12,7 @@ The roadmap does not select unapproved technologies, define API contracts, or du
 
 1. Establish the required backend directory structure and confirm responsibility boundaries before adding feature code.
 2. Record decisions needed to create a reproducible Python project and test workflow, including Python/dependency policy, database access and migration tooling, and test PostgreSQL provisioning.
-3. Identify the product decisions that affect upcoming work. Resolve authentication/account lifecycle before production authentication; profile fields and visibility before finalizing profiles; and connection cooldown semantics before retry behavior is accepted.
+3. Identify the product decisions that affect upcoming work. Resolve authentication/account lifecycle before production authentication and profile fields and visibility before finalizing profiles. The connection cooldown semantics are approved in root BR-004.
 4. Define how work and tests will trace to root FR, BR, NFR, and AC identifiers.
 
 **Verification throughout:** Review the proposed structure against the Backend Specification. Confirm that choices are recorded rather than silently assumed.
@@ -51,7 +51,7 @@ The roadmap does not select unapproved technologies, define API contracts, or du
 
 1. Implement profile and discovery services and their repositories, applying public visibility and owner-only editing rules (FR-002–FR-004; BR-001–BR-002).
 2. Implement connection request, acceptance, and rejection use cases (FR-005–FR-007).
-3. Resolve the rejected-request cooldown duration and measurement before implementing and accepting retry behavior (FR-008; BR-004).
+3. Implement and verify rejected-request retries using the approved 168-hour cooldown (FR-008; BR-004).
 4. Implement connection removal so history is preserved and new messages are prevented (FR-009; BR-005).
 5. Implement blocking so messaging is prevented in both directions and profiles are hidden from each other (FR-010; BR-006). Resolve effects on pending requests, connection state, and existing conversation/history access before implementing those effects.
 6. Expose the approved profile and connection operations through REST routes and schemas. Confirm route, response, error, and pagination conventions before making the API contract stable.

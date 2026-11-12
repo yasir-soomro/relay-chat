@@ -11,6 +11,7 @@ from backend.main import app
 from backend.model.conversation import Conversation
 from backend.model.user import User
 from backend.schemas.conversation import (
+    ConversationListItemResponse,
     ConversationListResponse,
     ConversationResponse,
 )
@@ -42,7 +43,14 @@ class ConversationServiceStub:
     async def list_conversations(self, user_id: UUID) -> ConversationListResponse:
         self.list_call = user_id
         return ConversationListResponse(
-            items=[ConversationResponse.model_validate(self.conversation)]
+            items=[
+                ConversationListItemResponse(
+                    **ConversationResponse.model_validate(
+                        self.conversation
+                    ).model_dump(),
+                    unread_count=3,
+                )
+            ]
         )
 
     async def get_conversation(
@@ -153,6 +161,7 @@ async def test_list_and_get_use_authenticated_user(
 
     assert listed.status_code == 200
     assert service.list_call == conversation_actor.id
+    assert listed.json()["items"][0]["unread_count"] == 3
     assert retrieved.status_code == 200
     assert service.get_call == (service.conversation.id, conversation_actor.id)
 

@@ -18,6 +18,7 @@ from backend.schemas.message_status import (
 from backend.services.auth_service import AuthenticatedUser
 from backend.services.message_status_service import MessageStatusPermissionError
 from backend.websocket.connection_manager import get_connection_manager
+from backend.websocket.events import MessageStatusEvent, ServerEvent
 
 
 class MessageStatusServiceStub:
@@ -108,12 +109,12 @@ class MessageStatusServiceStub:
 
 class ConnectionManagerStub:
     def __init__(self) -> None:
-        self.events: list[tuple[UUID, object]] = []
+        self.events: list[tuple[UUID, ServerEvent]] = []
 
     async def send_to_conversation(
         self,
         conversation_id: UUID,
-        event: object,
+        event: ServerEvent,
     ) -> None:
         self.events.append((conversation_id, event))
 
@@ -179,12 +180,15 @@ async def test_delivery_read_and_batch_acknowledgments_use_current_user(
     )
     assert service.calls[2] == ("read", message_id, status_actor.id)
     assert service.calls[3][:3] == ("batch", conversation_id, status_actor.id)
-    assert len(manager.events) == 5
-    assert all(event.type == "message.status" for _, event in manager.events)
+    status_events = [
+        event for _, event in manager.events if isinstance(event, MessageStatusEvent)
+    ]
+    assert len(status_events) == len(manager.events) == 5
+    assert all(event.type == "message.status" for event in status_events)
     assert manager.events[0][0] == service.conversation_id
     assert manager.events[1][0] == conversation_id
     assert manager.events[2][0] == service.conversation_id
-    assert [event.conversation_id for _, event in manager.events] == [
+    assert [event.conversation_id for event in status_events] == [
         service.conversation_id,
         conversation_id,
         service.conversation_id,

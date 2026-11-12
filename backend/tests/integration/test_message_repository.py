@@ -160,6 +160,7 @@ async def test_message_client_id_is_unique_per_conversation_and_sender(
                     sender_id=sender.id,
                     client_message_id=client_message_id,
                     content="first",
+                    status=MessageStatus.SENT.value,
                     sent_at=now,
                 )
             )
@@ -171,6 +172,7 @@ async def test_message_client_id_is_unique_per_conversation_and_sender(
                     sender_id=sender.id,
                     client_message_id=client_message_id,
                     content="retry",
+                    status=MessageStatus.SENT.value,
                     sent_at=now,
                 )
             )

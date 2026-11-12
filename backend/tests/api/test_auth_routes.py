@@ -300,8 +300,8 @@ async def test_database_errors_during_refresh_and_authentication_are_not_401(
     api_client: AsyncClient,
     api_settings: Settings,
 ) -> None:
-    app.dependency_overrides[get_auth_service] = (
-        lambda: DatabaseUnavailableAuthService()
+    app.dependency_overrides[get_auth_service] = lambda: (
+        DatabaseUnavailableAuthService()
     )
     app.dependency_overrides[get_settings] = lambda: api_settings
 

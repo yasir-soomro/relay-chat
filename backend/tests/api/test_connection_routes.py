@@ -16,7 +16,7 @@ from backend.schemas.connection import (
     ConnectionStatus,
 )
 from backend.services.auth_service import AuthenticatedUser
-from backend.services.connection_service import ConnectionCooldownNotConfiguredError
+from backend.services.connection_service import ConnectionCooldownActiveError
 
 
 class ConnectionServiceStub:
@@ -94,13 +94,13 @@ class ConnectionServiceStub:
         return ConnectionListResponse(items=[])
 
 
-class UnconfiguredCooldownServiceStub(ConnectionServiceStub):
+class CooldownActiveServiceStub(ConnectionServiceStub):
     async def request_connection(
         self,
         requester_id: UUID,
         recipient_id: UUID,
     ) -> ConnectionResponse:
-        raise ConnectionCooldownNotConfiguredError
+        raise ConnectionCooldownActiveError(datetime(2025, 1, 8, tzinfo=UTC))
 
 
 @pytest.fixture
@@ -183,13 +183,13 @@ async def test_block_route_uses_authenticated_user_as_blocker(
 
 
 @pytest.mark.asyncio
-async def test_rejected_request_retry_is_explicitly_unavailable_until_configured(
+async def test_rejected_request_retry_returns_stable_error_and_availability(
     connection_client: AsyncClient,
     connection_actor: AuthenticatedUser,
 ) -> None:
     app.dependency_overrides[get_current_user] = lambda: connection_actor
     app.dependency_overrides[get_connection_service] = lambda: (
-        UnconfiguredCooldownServiceStub()
+        CooldownActiveServiceStub()
     )
 
     response = await connection_client.post(
@@ -197,8 +197,11 @@ async def test_rejected_request_retry_is_explicitly_unavailable_until_configured
         json={"recipient_id": str(uuid4())},
     )
 
-    assert response.status_code == 503
-    assert response.json()["detail"] == "Connection request cooldown is not configured"
+    assert response.status_code == 409
+    assert response.json()["detail"] == {
+        "code": "connection_request_cooldown_active",
+        "retry_at": "2025-01-08T00:00:00+00:00",
+    }
 
 
 @pytest.mark.asyncio

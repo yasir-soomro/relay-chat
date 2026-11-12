@@ -10,12 +10,14 @@ from backend.repository.connection_repository import ConnectionRepository
 from backend.repository.conversation_repository import ConversationRepository
 from backend.repository.message_repository import MessageRepository
 from backend.repository.message_status_repository import MessageStatusRepository
+from backend.repository.notification_repository import NotificationRepository
 from backend.repository.user_repository import UserRepository
 from backend.services.auth_service import AuthService
 from backend.services.connection_service import ConnectionService
 from backend.services.conversation_service import ConversationService
 from backend.services.message_service import MessageService
 from backend.services.message_status_service import MessageStatusService
+from backend.services.notification_service import NotificationService
 from backend.services.user_service import UserService
 
 
@@ -45,7 +47,7 @@ def get_connection_service(
 ) -> ConnectionService:
     return ConnectionService(
         ConnectionRepository(session),
-        settings.connection_request_cooldown_seconds,
+        settings.connection_request_cooldown_hours,
     )
 
 
@@ -68,3 +70,9 @@ def get_message_status_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> MessageStatusService:
     return MessageStatusService(MessageStatusRepository(session))
+
+
+def get_notification_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> NotificationService:
+    return NotificationService(NotificationRepository(session))

@@ -1,12 +1,13 @@
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy import and_, exists, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.model.connection import Connection, UserBlock
 from backend.model.conversation import Conversation
+from backend.model.message import Message
 from backend.model.user import User
 
 
@@ -27,7 +28,10 @@ class ConversationRepositoryProtocol(Protocol):
 
     async def create(self, conversation: Conversation) -> None: ...
 
-    async def list_for_user(self, user_id: UUID) -> list[Conversation]: ...
+    async def list_for_user_with_unread_counts(
+        self,
+        user_id: UUID,
+    ) -> list[tuple[Conversation, int]]: ...
 
     async def commit(self) -> None: ...
 
@@ -108,18 +112,41 @@ class ConversationRepository:
                 raise ConversationConflictError from None
             raise
 
-    async def list_for_user(self, user_id: UUID) -> list[Conversation]:
+    async def list_for_user_with_unread_counts(
+        self,
+        user_id: UUID,
+    ) -> list[tuple[Conversation, int]]:
+        incoming_from_participant = or_(
+            and_(
+                Conversation.user_low_id == user_id,
+                Message.sender_id == Conversation.user_high_id,
+            ),
+            and_(
+                Conversation.user_high_id == user_id,
+                Message.sender_id == Conversation.user_low_id,
+            ),
+        )
         statement = (
-            select(Conversation)
+            select(Conversation, func.count(Message.id).label("unread_count"))
+            .outerjoin(
+                Message,
+                and_(
+                    Message.conversation_id == Conversation.id,
+                    incoming_from_participant,
+                    Message.status != "read",
+                ),
+            )
             .where(
                 or_(
                     Conversation.user_low_id == user_id,
                     Conversation.user_high_id == user_id,
                 )
             )
+            .group_by(Conversation.id)
             .order_by(Conversation.created_at.desc(), Conversation.id)
         )
-        return list((await self._session.scalars(statement)).all())
+        rows = (await self._session.execute(statement)).all()
+        return [(conversation, unread_count) for conversation, unread_count in rows]
 
     async def commit(self) -> None:
         await self._session.commit()
