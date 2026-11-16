@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AuthField } from "@/features/auth/components/auth-field";
+import { RelayIcon } from "@/components/ui/relay-icon";
 
 type PasswordFieldProps = {
   autoComplete: "current-password" | "new-password";
@@ -13,6 +14,7 @@ type PasswordFieldProps = {
   maxLength?: number;
   minLength?: number;
   onChange: (value: string) => void;
+  togglePresentation?: "text" | "icon";
   value: string;
 };
 
@@ -26,6 +28,7 @@ export function PasswordField({
   maxLength = 128,
   minLength = 12,
   onChange,
+  togglePresentation = "text",
   value,
 }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
@@ -47,12 +50,19 @@ export function PasswordField({
         <button
           aria-label={visible ? "Hide password" : "Show password"}
           aria-pressed={visible}
-          className="rounded px-1 text-xs font-semibold text-moss underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline-moss"
+          className="rounded px-1 text-xs font-semibold text-primary underline-offset-4 transition-colors hover:text-ink hover:underline focus-visible:outline-focus"
           disabled={disabled}
           onClick={() => setVisible((current) => !current)}
           type="button"
         >
-          {visible ? "Hide" : "Show"}
+          {togglePresentation === "icon" ? (
+            <RelayIcon
+              className="size-4"
+              name={visible ? "eye-off" : "eye"}
+            />
+          ) : (
+            visible ? "Hide" : "Show"
+          )}
         </button>
       }
       type={visible ? "text" : "password"}

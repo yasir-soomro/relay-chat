@@ -79,7 +79,7 @@ export function MessageTimeline({
       {hasOlder || olderError ? (
         <div className="mb-4 flex flex-wrap items-center justify-center gap-3">
           {olderError ? (
-            <p className="text-sm text-[#8e3027]" role="alert">
+            <p className="text-sm text-danger" role="alert">
               {olderError}
             </p>
           ) : null}

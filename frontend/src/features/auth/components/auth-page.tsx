@@ -19,7 +19,7 @@ export function AuthPage({
   return (
     <PageContainer className="grid min-h-[min(48rem,calc(100vh-9rem))] items-center gap-10 py-10 sm:py-14 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.82fr)] lg:gap-16 lg:py-16">
       <section className="motion-rise hidden max-w-xl lg:block">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-moss">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
           A space for your people
         </p>
         <h2 className="mt-5 text-balance text-5xl font-medium leading-[1.05] tracking-[-0.07em] text-ink xl:text-6xl">
@@ -30,7 +30,7 @@ export function AuthPage({
           pace that feels like yours.
         </p>
         <Link
-          className="mt-8 inline-flex rounded-sm text-sm font-semibold text-moss underline-offset-4 transition-colors hover:text-ink hover:underline"
+          className="mt-8 inline-flex rounded-sm text-sm font-semibold text-primary underline-offset-4 transition-colors hover:text-ink hover:underline"
           href="/#principles"
         >
           Get to know Relay
@@ -41,7 +41,7 @@ export function AuthPage({
         aria-labelledby="auth-heading"
         className={`motion-rise-delayed mx-auto w-full max-w-md ${surfaceCardClassName} p-6 sm:p-8 lg:mx-0 lg:justify-self-end`}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-moss">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
           {eyebrow}
         </p>
         <h1

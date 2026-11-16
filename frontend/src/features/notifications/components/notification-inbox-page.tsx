@@ -9,7 +9,7 @@ export function NotificationInboxPage() {
 
   return (
     <section aria-labelledby="notifications-heading" className="mx-auto max-w-5xl">
-      <p className="text-sm font-medium text-moss">Your activity</p>
+      <p className="text-sm font-medium text-primary">Your activity</p>
       <h1
         className="mt-2 text-3xl font-medium tracking-[-0.055em] text-ink sm:text-4xl"
         id="notifications-heading"
@@ -40,7 +40,7 @@ export function NotificationInboxPage() {
 
       {error ? (
         <div className="mt-7 rounded-card border border-line bg-surface p-6">
-          <p className="text-sm leading-6 text-[#8e3027]" role="alert">
+          <p className="text-sm leading-6 text-danger" role="alert">
             {error}
           </p>
           <Button className="mt-4" onClick={retry} type="button">
@@ -70,7 +70,7 @@ export function NotificationInboxPage() {
             >
               <Link
                 aria-label={`${item.unreadCount} unread messages. Open conversation.`}
-                className="flex min-h-20 items-center justify-between gap-4 rounded-card p-4 transition-colors hover:bg-soft focus-visible:outline-moss sm:p-5"
+                className="flex min-h-20 items-center justify-between gap-4 rounded-card p-4 transition-colors hover:bg-soft focus-visible:outline-focus sm:p-5"
                 href={`/conversations/${encodeURIComponent(item.conversationId)}`}
               >
                 <span>
@@ -81,7 +81,7 @@ export function NotificationInboxPage() {
                 </span>
                 <span
                   aria-hidden="true"
-                  className="shrink-0 text-sm font-semibold text-moss"
+                  className="shrink-0 text-sm font-semibold text-primary"
                 >
                   Open
                 </span>

@@ -57,7 +57,7 @@ export function ConversationDetailPage({
           >
             Conversation unavailable
           </h1>
-          <p className="mt-3 text-sm leading-6 text-[#8e3027]" role="alert">
+          <p className="mt-3 text-sm leading-6 text-danger" role="alert">
             {conversation.error || "This conversation could not be found."}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
@@ -107,7 +107,7 @@ export function ConversationDetailPage({
       ) : messages.error ? (
         <div className="grid min-h-0 flex-1 place-content-center px-6 text-center">
           <h2 className="font-semibold text-ink">Messages could not load</h2>
-          <p className="mt-2 max-w-md text-sm leading-6 text-[#8e3027]" role="alert">
+          <p className="mt-2 max-w-md text-sm leading-6 text-danger" role="alert">
             {messages.error}
           </p>
           <Button className="mx-auto mt-4" onClick={messages.reload} type="button">

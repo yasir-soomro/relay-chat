@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuthField } from "@/features/auth/components/auth-field";
@@ -10,6 +9,7 @@ import { PasswordField } from "@/features/auth/components/password-field";
 import { useAuth } from "@/features/auth/providers/auth-provider";
 import { validateLogin } from "@/features/auth/schemas";
 import type { FieldErrors } from "@/features/auth/types";
+import { RelayIcon } from "@/components/ui/relay-icon";
 
 export function LoginForm() {
   const { signIn, status, error: authError } = useAuth();
@@ -89,7 +89,7 @@ export function LoginForm() {
   return (
     <form
       aria-busy={isSubmitting}
-      className="space-y-5"
+      className="login-form space-y-5"
       noValidate
       onSubmit={handleSubmit}
     >
@@ -98,7 +98,7 @@ export function LoginForm() {
         disabled={isSubmitting}
         error={fieldErrors.email}
         id="login-email"
-        label="Email"
+        label="Email address"
         maxLength={254}
         name="email"
         onChange={(event) => updateField("email", event.target.value)}
@@ -111,16 +111,16 @@ export function LoginForm() {
         autoComplete="current-password"
         disabled={isSubmitting}
         error={fieldErrors.password}
-        hint="Use the password you set up for Relay."
         id="login-password"
         onChange={(value) => updateField("password", value)}
+        togglePresentation="icon"
         value={password}
       />
 
       {formError || authError ? (
         <p
           aria-live="polite"
-          className="rounded-xl border border-[#efd2cc] bg-[#fff7f5] px-4 py-3 text-sm leading-6 text-[#8e3027]"
+          className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm leading-6 text-danger"
           role="alert"
         >
           {formError || authError}
@@ -129,7 +129,7 @@ export function LoginForm() {
       {success ? (
         <p
           aria-live="polite"
-          className="rounded-xl border border-line bg-soft px-4 py-3 text-sm leading-6 text-moss"
+          className="rounded-xl border border-line bg-soft px-4 py-3 text-sm leading-6 text-primary"
           role="status"
         >
           You&apos;re signed in. Your session is available for this visit.
@@ -139,20 +139,18 @@ export function LoginForm() {
       <Button
         className="w-full"
         disabled={isSubmitting}
+        loading={isSubmitting}
         type="submit"
       >
-        {isSubmitting ? "Signing in..." : "Sign in"}
+        {isSubmitting ? (
+          "Signing in..."
+        ) : (
+          <>
+            Sign in
+            <RelayIcon className="size-4" name="arrow-right" />
+          </>
+        )}
       </Button>
-
-      <p className="text-center text-sm text-muted">
-        New to Relay?{" "}
-        <Link
-          className="rounded-sm font-semibold text-moss underline-offset-4 transition-colors hover:text-ink hover:underline"
-          href="/register"
-        >
-          Create an account
-        </Link>
-      </p>
     </form>
   );
 }

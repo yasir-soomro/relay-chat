@@ -58,7 +58,7 @@ export function MessageComposer({
       onSubmit={(event) => void submit(event)}
     >
       {combinedError ? (
-        <p className="mb-2 text-sm leading-5 text-[#8e3027]" role="alert">
+        <p className="mb-2 text-sm leading-5 text-danger" role="alert">
           {combinedError}
         </p>
       ) : null}
@@ -72,7 +72,7 @@ export function MessageComposer({
       </label>
       <div className="flex items-end gap-2 sm:gap-3">
         <textarea
-          className="max-h-48 min-h-12 min-w-0 flex-1 resize-y rounded-2xl border border-line bg-canvas px-4 py-3 text-sm leading-6 text-ink placeholder:text-muted focus:border-moss focus:outline-none focus:ring-2 focus:ring-moss/20 disabled:cursor-not-allowed disabled:opacity-70"
+          className="max-h-48 min-h-12 min-w-0 flex-1 resize-y rounded-2xl border border-line bg-canvas px-4 py-3 text-sm leading-6 text-ink placeholder:text-muted focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-70"
           disabled={!canSend || isSending}
           id="message-composer"
           onChange={(event) => setContent(event.target.value)}
@@ -83,6 +83,7 @@ export function MessageComposer({
         <Button
           className="shrink-0 px-4 sm:px-5"
           disabled={!canSend || isSending || !content.trim()}
+          loading={isSending}
           type="submit"
         >
           {isSending ? "Sending…" : "Send"}

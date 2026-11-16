@@ -22,7 +22,7 @@ export function ProfileCard({ profile, email }: ProfileCardProps) {
           <h2 className="break-words text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
             {profile.display_name}
           </h2>
-          <p className="mt-1 text-sm font-medium text-moss">
+          <p className="mt-1 text-sm font-medium text-primary">
             @{profile.username}
           </p>
           {email ? (

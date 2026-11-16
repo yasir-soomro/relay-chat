@@ -1,20 +1,12 @@
 import type { Metadata } from "next";
-import { AuthPage } from "@/features/auth/components/auth-page";
-import { RegistrationForm } from "@/features/auth/components/registration-form";
+import { RegistrationPage } from "@/features/auth/components/registration-page";
 
 export const metadata: Metadata = {
   title: "Create an account | Relay",
-  description: "Create your Relay account.",
+  description:
+    "Create a Relay account to discover members, make mutual connections, and start a private conversation.",
 };
 
 export default function RegisterPage() {
-  return (
-    <AuthPage
-      description="Create an account and make a little room for your people."
-      eyebrow="Start a conversation"
-      heading="Join Relay"
-    >
-      <RegistrationForm />
-    </AuthPage>
-  );
+  return <RegistrationPage />;
 }

@@ -68,15 +68,16 @@ export function MessageActions({
           </label>
           <textarea
             autoFocus
-            className="min-h-20 w-full resize-y rounded-xl border border-line bg-surface px-3 py-2 text-sm leading-6 text-ink focus:border-moss focus:outline-none"
+            className="min-h-20 w-full resize-y rounded-xl border border-line bg-surface px-3 py-2 text-sm leading-6 text-ink focus:border-focus focus:outline-none"
             id={`edit-${message.id}`}
             onChange={(event) => setContent(event.target.value)}
             value={content}
           />
           <div className="flex flex-wrap gap-2">
             <Button
-              className="bg-white text-ink hover:bg-soft"
+              className="bg-surface text-ink hover:bg-soft"
               disabled={isSaving || !content.trim()}
+              loading={isSaving}
               type="submit"
               variant="secondary"
             >
@@ -88,7 +89,7 @@ export function MessageActions({
                 setError("");
                 setIsEditing(false);
               }}
-              className="border-white/30 text-white/80 hover:bg-white/10 hover:text-white"
+              className="border-primary-foreground/30 text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
               type="button"
               variant="quiet"
             >
@@ -102,16 +103,17 @@ export function MessageActions({
           <Button
             disabled={isSaving}
             onClick={() => void deleteOwnMessage()}
-            className="border-white/30 text-white/80 hover:bg-white/10 hover:text-white"
+            className="border-primary-foreground/30 text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+            loading={isSaving}
             type="button"
-            variant="quiet"
+            variant="destructive"
           >
             {isSaving ? "Deleting…" : "Confirm delete"}
           </Button>
           <Button
             disabled={isSaving}
             onClick={() => setConfirmDelete(false)}
-            className="border-white/30 text-white/80 hover:bg-white/10 hover:text-white"
+            className="border-primary-foreground/30 text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
             type="button"
             variant="quiet"
           >
@@ -121,7 +123,7 @@ export function MessageActions({
       ) : (
         <div className="flex gap-2">
           <button
-            className="min-h-8 rounded px-2 text-xs font-semibold text-white/80 underline-offset-4 hover:text-white hover:underline focus-visible:outline-moss"
+            className="min-h-8 rounded px-2 text-xs font-semibold text-primary-foreground/80 underline-offset-4 hover:text-primary-foreground hover:underline focus-visible:outline-focus"
             onClick={() => {
               setContent(message.content ?? "");
               setError("");
@@ -132,7 +134,7 @@ export function MessageActions({
             Edit
           </button>
           <button
-            className="min-h-8 rounded px-2 text-xs font-semibold text-white/80 underline-offset-4 hover:text-red-200 hover:underline focus-visible:outline-moss"
+            className="min-h-8 rounded px-2 text-xs font-semibold text-primary-foreground/80 underline-offset-4 hover:text-danger hover:underline focus-visible:outline-focus"
             onClick={() => setConfirmDelete(true)}
             type="button"
           >
@@ -141,7 +143,7 @@ export function MessageActions({
         </div>
       )}
       {error ? (
-        <p         className="mt-1 text-xs leading-5 text-red-200" role="alert">
+        <p className="mt-1 rounded bg-danger-soft px-2 py-1 text-xs leading-5 text-danger" role="alert">
           {error}
         </p>
       ) : null}

@@ -50,6 +50,9 @@ describe("UserDiscoveryPage", () => {
       );
     render(<UserDiscoveryPage />);
 
+    expect(
+      screen.getByRole("searchbox", { name: "Search by username" }),
+    ).toBeTruthy();
     expect(await screen.findByText("Relay One")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View Relay One's profile" }).getAttribute("href"))
       .toBe(`/app/users/${firstProfile.id}`);
@@ -60,6 +63,7 @@ describe("UserDiscoveryPage", () => {
     });
 
     expect(await screen.findByText("Relay Two")).toBeTruthy();
+    expect(screen.getByText("2 people shown")).toBeTruthy();
     expect(authenticatedFetch).toHaveBeenNthCalledWith(
       2,
       "/api/v1/users/discover?limit=20&cursor=relay_one",
@@ -86,5 +90,15 @@ describe("UserDiscoveryPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Relay One")).toBeTruthy();
     });
+  });
+
+  it("shows a concise empty state when discovery has no members", async () => {
+    authenticatedFetch.mockResolvedValueOnce(
+      jsonResponse({ items: [], next_cursor: null }),
+    );
+    render(<UserDiscoveryPage />);
+
+    expect(await screen.findByText("No members to discover yet")).toBeTruthy();
+    expect(screen.queryByText("0 people shown")).toBeNull();
   });
 });

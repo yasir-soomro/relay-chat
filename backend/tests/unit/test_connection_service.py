@@ -182,7 +182,37 @@ async def test_only_recipient_can_accept_or_reject_pending_request(
     with pytest.raises(ConnectionAlreadyExistsError):
         await service.request_connection(first, second)
     with pytest.raises(InvalidConnectionTransitionError):
+        await service.cancel_request(request.id, first)
+    with pytest.raises(InvalidConnectionTransitionError):
         await service.reject_request(request.id, second)
+
+
+@pytest.mark.asyncio
+async def test_requester_can_cancel_pending_request_and_send_again(
+    participants: tuple[UUID, UUID, UUID],
+) -> None:
+    first, second, outsider = participants
+    service, repository = new_service(participants)
+    request = await service.request_connection(first, second)
+
+    with pytest.raises(ConnectionPermissionError):
+        await service.cancel_request(request.id, second)
+    with pytest.raises(ConnectionPermissionError):
+        await service.cancel_request(request.id, outsider)
+
+    cancelled = await service.cancel_request(request.id, first)
+
+    assert cancelled.status == ConnectionStatus.REMOVED
+    assert cancelled.removed_at is not None
+    assert not (await service.list_outgoing_requests(first)).items
+    assert len(repository.connections) == 1
+
+    resent = await service.request_connection(first, second)
+
+    assert resent.id == request.id
+    assert resent.status == ConnectionStatus.PENDING
+    assert resent.removed_at is None
+    assert resent.rejected_at is None
 
 
 @pytest.mark.asyncio
@@ -197,6 +227,8 @@ async def test_rejection_retry_observes_cooldown_and_original_requester(
     assert rejection_time is not None
     assert rejection_time.tzinfo == UTC
 
+    with pytest.raises(InvalidConnectionTransitionError):
+        await service.cancel_request(request.id, first)
     with pytest.raises(ConnectionCooldownActiveError) as error:
         await service.request_connection(first, second)
     assert error.value.retry_at == rejection_time + timedelta(hours=168)

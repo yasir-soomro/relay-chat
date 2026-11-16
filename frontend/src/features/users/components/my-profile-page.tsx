@@ -59,7 +59,7 @@ export function MyProfilePage() {
 
   return (
     <section aria-labelledby="profile-heading" className="mx-auto max-w-3xl">
-      <p className="text-sm font-medium text-moss">Account</p>
+      <p className="text-sm font-medium text-primary">Account</p>
       <h1
         className="mt-2 text-3xl font-medium tracking-[-0.055em] text-ink sm:text-4xl"
         id="profile-heading"
@@ -80,7 +80,7 @@ export function MyProfilePage() {
         </div>
       ) : loadError ? (
         <div className="mt-8 rounded-3xl border border-line bg-surface p-6 sm:p-8">
-          <p className="text-sm leading-6 text-[#8e3027]" role="alert">
+          <p className="text-sm leading-6 text-danger" role="alert">
             {loadError}
           </p>
           <Button
@@ -100,7 +100,7 @@ export function MyProfilePage() {
           {saved ? (
             <p
               aria-live="polite"
-              className="rounded-xl border border-line bg-soft px-4 py-3 text-sm text-moss"
+              className="rounded-xl border border-line bg-soft px-4 py-3 text-sm text-primary"
               role="status"
             >
               Your profile has been updated.

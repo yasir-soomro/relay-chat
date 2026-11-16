@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   blockUser,
+  cancelConnectionRequest,
   ConnectionRequestError,
   listAcceptedConnections,
   rejectConnectionRequest,
@@ -87,6 +88,22 @@ describe("connection API", () => {
       status: 409,
       message: `You can send another request after ${new Date(retryAt).toLocaleString()}.`,
     } satisfies Partial<ConnectionRequestError>);
+  });
+
+  it("cancels a request through the request-specific endpoint", async () => {
+    const authenticatedFetch = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ ...connection, status: "removed" }),
+      );
+
+    await expect(
+      cancelConnectionRequest(authenticatedFetch, connection.id),
+    ).resolves.toMatchObject({ status: "removed" });
+    expect(authenticatedFetch).toHaveBeenCalledWith(
+      `/connections/requests/${connection.id}`,
+      expect.objectContaining({ method: "DELETE" }),
+    );
   });
 
   it("uses the established block and unblock routes", async () => {

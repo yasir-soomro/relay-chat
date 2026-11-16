@@ -1,19 +1,35 @@
+import Image from "next/image";
 import Link from "next/link";
 
-export function SiteBrand() {
+export function SiteBrand({
+  compact = false,
+  inverse = false,
+}: {
+  compact?: boolean;
+  inverse?: boolean;
+}) {
   return (
     <Link
       aria-label="Relay home"
-      className="inline-flex items-center gap-2.5 rounded-md"
+      className="site-brand-link inline-flex items-center rounded-md"
       href="/"
     >
       <span
-        aria-hidden="true"
-        className="grid size-9 place-items-center rounded-xl bg-ink text-sm font-bold tracking-tight text-accent"
+        className={`site-brand-frame relative block h-10 overflow-hidden sm:h-12 ${
+          compact ? "site-brand-frame-compact" : ""
+        }`}
       >
-        r.
+        <Image
+          alt=""
+          className={`site-brand-image object-cover ${
+            inverse ? "site-brand-image-inverse" : ""
+          }`}
+          fill
+          priority
+          sizes="(max-width: 640px) 140px, 176px"
+          src="/images/Relay%20Chat%20Minimalist%20Logo.png"
+        />
       </span>
-      <span className="text-xl font-semibold tracking-[-0.06em]">relay</span>
     </Link>
   );
 }

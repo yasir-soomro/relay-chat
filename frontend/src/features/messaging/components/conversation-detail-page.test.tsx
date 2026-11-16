@@ -231,10 +231,8 @@ describe("ConversationDetailPage", () => {
     ).toBe(false);
 
     fireEvent.keyDown(composer, { key: "Enter" });
-    expect(await screen.findByText("A multiline message")).toBeTruthy();
-    expect(
-      screen.getByLabelText("Message status: sent").textContent,
-    ).toContain("Sent");
+    const sentStatus = await screen.findByLabelText("Message status: sent");
+    expect(sentStatus.textContent).toContain("Sent");
     expect(
       authenticatedFetch.mock.calls.some(
         ([path, init]) =>

@@ -63,7 +63,7 @@ export function StartConversationList({
       </div>
 
       {error ? (
-        <p className="mt-4 text-sm leading-6 text-[#8e3027]" role="alert">
+        <p className="mt-4 text-sm leading-6 text-danger" role="alert">
           {error}
         </p>
       ) : null}
@@ -78,7 +78,7 @@ export function StartConversationList({
         </div>
       ) : connectionError ? (
         <div className="mt-4 rounded-card border border-line bg-surface px-5 py-6">
-          <p className="text-sm leading-6 text-[#8e3027]" role="alert">
+          <p className="text-sm leading-6 text-danger" role="alert">
             {connectionError}
           </p>
           <Button

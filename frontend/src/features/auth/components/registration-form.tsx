@@ -16,6 +16,7 @@ import type {
   RegistrationValues,
 } from "@/features/auth/types";
 import { useAuth } from "@/features/auth/providers/auth-provider";
+import { RelayIcon } from "@/components/ui/relay-icon";
 
 const emptyValues: RegistrationValues = {
   email: "",
@@ -85,7 +86,7 @@ export function RegistrationForm() {
   return (
     <form
       aria-busy={isSubmitting}
-      className="space-y-4"
+      className="registration-form space-y-4"
       noValidate
       onSubmit={handleSubmit}
     >
@@ -93,12 +94,13 @@ export function RegistrationForm() {
         autoComplete="name"
         error={fieldErrors.display_name}
         id="register-display-name"
-        label="Display name"
+        hint="This is the name shown on your profile."
+        label="Full name"
         maxLength={50}
         name="display_name"
         disabled={isSubmitting}
         onChange={(event) => updateField("display_name", event.target.value)}
-        placeholder="How should we call you?"
+        placeholder="Your name"
         required
         type="text"
         value={values.display_name}
@@ -140,13 +142,14 @@ export function RegistrationForm() {
         hint="Use 12–128 characters."
         id="register-password"
         onChange={(value) => updateField("password", value)}
+        togglePresentation="icon"
         value={values.password}
       />
 
       {formError ? (
         <p
           aria-live="polite"
-          className="rounded-xl border border-[#efd2cc] bg-[#fff7f5] px-4 py-3 text-sm leading-6 text-[#8e3027]"
+          className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm leading-6 text-danger"
           role="alert"
         >
           {formError}
@@ -155,7 +158,7 @@ export function RegistrationForm() {
       {success ? (
         <p
           aria-live="polite"
-          className="rounded-xl border border-line bg-soft px-4 py-3 text-sm leading-6 text-moss"
+          className="rounded-xl border border-line bg-soft px-4 py-3 text-sm leading-6 text-primary"
           role="status"
         >
           Your account has been created. You can now{" "}
@@ -169,20 +172,18 @@ export function RegistrationForm() {
       <Button
         className="w-full"
         disabled={isSubmitting}
+        loading={isSubmitting}
         type="submit"
       >
-        {isSubmitting ? "Creating account..." : "Create account"}
+        {isSubmitting ? (
+          "Creating account..."
+        ) : (
+          <>
+            Create account
+            <RelayIcon className="size-4" name="arrow-right" />
+          </>
+        )}
       </Button>
-
-      <p className="pt-1 text-center text-sm text-muted">
-        Already have an account?{" "}
-        <Link
-          className="rounded-sm font-semibold text-moss underline-offset-4 transition-colors hover:text-ink hover:underline"
-          href="/login"
-        >
-          Sign in
-        </Link>
-      </p>
     </form>
   );
 }

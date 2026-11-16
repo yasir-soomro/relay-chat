@@ -64,6 +64,39 @@ Start the production server after building:
 npm run start
 ```
 
+## Design system
+
+The shared design system lives in `src/styles/tokens.css` and
+`src/app/globals.css`. Semantic CSS variables are exposed to Tailwind for
+primary and secondary actions, accent, page and surface backgrounds, borders,
+focus, and success, warning, information, and danger states. Indigo `#4F46E5`
+is the primary brand color and teal `#14B8A6` is the accent. Light mode uses
+off-white backgrounds and white surfaces; dark mode uses layered navy surfaces.
+
+The root layout applies a small `beforeInteractive` theme bootstrap so the
+saved System, Light, or Dark preference is applied before the page is painted.
+System follows the operating-system preference and updates when it changes.
+The theme switcher is available in public navigation and in both authenticated
+navigation layouts. User selections are stored as `relay-theme` in local
+storage and synchronize across open tabs.
+
+use the reusable primitives in `src/components/ui/`: `Button` supports primary,
+secondary, quiet, destructive, and loading states; `Input` and `Textarea`
+share accessible form-control states; `Card`, `Badge`, `Avatar`, `Dropdown`,
+and `Toast` provide shared presentation; and `Dialog` uses the browser's native
+modal dialog for keyboard focus management and Escape handling. Existing
+feature notification toasts and mobile navigation continue to own their
+feature state while using these shared styles. `PageContainer` and the design
+tokens define content width, spacing, typography, breakpoints, radii, and
+elevation. Keep feature policy and API calls out of primitives.
+
+Controls have visible focus, hover, active, disabled, and loading feedback.
+Status colors are paired with semantic text labels, and global motion honors
+`prefers-reduced-motion`. Use semantic token utilities rather than hard-coded
+colors when adding UI so both themes retain contrast.
+
+Open `/design-system` to inspect the small component showcase in both themes.
+
 ## Project structure
 
 Application source lives in `src/`. App Router routes and layouts are in

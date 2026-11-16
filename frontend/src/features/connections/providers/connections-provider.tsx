@@ -13,6 +13,7 @@ import { useAuth } from "@/features/auth/providers/auth-provider";
 import {
   acceptConnectionRequest,
   blockUser,
+  cancelConnectionRequest,
   ConnectionRequestError,
   listAcceptedConnections,
   listIncomingRequests,
@@ -41,6 +42,7 @@ type ConnectionsContextValue = ConnectionLists & {
   reload: () => void;
   stateFor: (userId: string) => ConnectionViewState;
   request: (userId: string) => Promise<void>;
+  cancelRequest: (connectionId: string) => Promise<void>;
   accept: (connectionId: string) => Promise<void>;
   reject: (connectionId: string) => Promise<void>;
   remove: (userId: string) => Promise<void>;
@@ -189,6 +191,30 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
         return next;
       });
       setFeedback("Connection request sent.");
+    },
+    [authenticatedFetch],
+  );
+
+  const cancelRequest = useCallback(
+    async (connectionId: string) => {
+      const connection = await cancelConnectionRequest(
+        authenticatedFetch,
+        connectionId,
+      );
+      if (connection.id !== connectionId || connection.status !== "removed") {
+        throw new ConnectionRequestError(
+          502,
+          "Relay did not confirm that the request was canceled.",
+        );
+      }
+      setLists((current) => ({
+        ...current,
+        outgoing: removeConnectionFromPage(
+          { items: current.outgoing },
+          connectionId,
+        ),
+      }));
+      setFeedback("Connection request canceled.");
     },
     [authenticatedFetch],
   );
@@ -347,6 +373,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
       reload,
       stateFor,
       request,
+      cancelRequest,
       accept,
       reject,
       remove,
@@ -356,6 +383,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
     [
       accept,
       block,
+      cancelRequest,
       error,
       feedback,
       isLoading,
@@ -392,7 +420,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
           aria-live="polite"
           className={`fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-lg rounded-xl border px-4 py-3 text-sm font-medium shadow-card sm:left-auto sm:right-6 ${
             feedbackIsError
-              ? "border-[#b5463a] bg-surface text-[#8e3027]"
+              ? "border-danger bg-surface text-danger"
               : "border-line bg-surface text-ink"
           }`}
           role={feedbackIsError ? "alert" : "status"}
@@ -402,7 +430,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
               <span>{feedback}</span>
               {lastBlocked ? (
                 <button
-                  className="min-h-8 font-semibold text-moss underline underline-offset-4"
+                  className="min-h-8 font-semibold text-primary underline underline-offset-4"
                   disabled={isLoading}
                   onClick={() => void undoLastBlock()}
                   type="button"

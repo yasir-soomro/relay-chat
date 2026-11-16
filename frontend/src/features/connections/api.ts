@@ -231,6 +231,19 @@ export async function rejectConnectionRequest(
   );
 }
 
+export async function cancelConnectionRequest(
+  authenticatedFetch: AuthenticatedRequest,
+  connectionId: string,
+): Promise<ConnectionRecord> {
+  return parseConnection(
+    await request(
+      authenticatedFetch,
+      `/connections/requests/${encodeURIComponent(connectionId)}`,
+      { method: "DELETE" },
+    ),
+  );
+}
+
 export async function removeConnection(
   authenticatedFetch: AuthenticatedRequest,
   otherUserId: string,

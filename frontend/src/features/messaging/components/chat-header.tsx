@@ -27,7 +27,7 @@ export function ChatHeader({
     <header className="flex min-w-0 items-center gap-3 border-b border-line px-4 py-4 sm:px-6">
       <Link
         aria-label="Back to conversations"
-        className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-xl text-muted transition-colors hover:bg-soft hover:text-ink focus-visible:outline-moss motion-reduce:transition-none"
+        className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-xl text-muted transition-colors hover:bg-soft hover:text-ink focus-visible:outline-focus motion-reduce:transition-none"
         href="/conversations"
       >
         <span aria-hidden="true">←</span>
@@ -43,7 +43,7 @@ export function ChatHeader({
         </span>
         {connectionState === "offline" ? (
           <button
-            className="rounded px-2 py-1 font-semibold text-moss underline-offset-4 hover:underline focus-visible:outline-moss"
+            className="rounded px-2 py-1 font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-focus"
             onClick={onReconnect}
             type="button"
           >

@@ -39,7 +39,7 @@ export function MessageBubble({
         aria-label={isOwn ? "Your message" : "Message from participant"}
         className={`min-w-0 max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[75%] ${
           isOwn
-            ? "rounded-br-md bg-ink text-white"
+            ? "rounded-br-md bg-primary text-primary-foreground"
             : "rounded-bl-md border border-line bg-surface text-ink"
         }`}
       >
@@ -54,7 +54,7 @@ export function MessageBubble({
         )}
         <div
           className={`mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] ${
-            isOwn ? "text-white/75" : "text-muted"
+            isOwn ? "text-primary-foreground/75" : "text-muted"
           }`}
         >
           <time dateTime={message.sent_at}>{formatTime(message.sent_at)}</time>

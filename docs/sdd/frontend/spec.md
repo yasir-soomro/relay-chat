@@ -258,14 +258,17 @@ is obtained through a valid, existing product flow.
 The connection experience lets the user:
 
 - View incoming and outgoing pending requests and accepted connections.
-- Send a request, accept or reject an incoming request, and remove an
-  accepted connection.
+- Send a request, cancel an outgoing pending request, accept or reject an
+  incoming request, and remove an accepted connection.
 - Block and unblock a user, with clear confirmation for disruptive actions.
 
 Use the authenticated actor from the current session. Only the request
-recipient may accept or reject; the backend remains authoritative for all
+recipient may accept or reject, and only the original requester may cancel
+while the request is pending; the backend remains authoritative for all
 permissions and state transitions. Reflect pending, accepted, rejected, and
-removed outcomes using backend response state and errors.
+removed outcomes using backend response state and errors. A successful
+cancellation allows either participant to start a new request without applying
+the rejected-request cooldown.
 
 Removal and blocking preserve conversation history, but stop new sends until
 there is an accepted, unblocked connection. Keep existing conversation
@@ -312,7 +315,7 @@ contract includes:
 |---|---|
 | Auth | `POST /auth/register`; `POST /auth/login`; `POST /auth/refresh`; `POST /auth/logout`; `GET /auth/me` |
 | Profile | `GET /users/me`; `PATCH /users/me`; `GET /users/{user_id}` |
-| Connections | `POST /connections/requests`; `GET /connections/requests/incoming`; `GET /connections/requests/outgoing`; `POST /connections/requests/{connection_id}/accept`; `POST /connections/requests/{connection_id}/reject`; `DELETE /connections/{other_user_id}`; `POST /connections/{other_user_id}/block`; `DELETE /connections/{other_user_id}/block`; `GET /connections` |
+| Connections | `POST /connections/requests`; `GET /connections/requests/incoming`; `GET /connections/requests/outgoing`; `POST /connections/requests/{connection_id}/accept`; `POST /connections/requests/{connection_id}/reject`; `DELETE /connections/requests/{connection_id}`; `DELETE /connections/{other_user_id}`; `POST /connections/{other_user_id}/block`; `DELETE /connections/{other_user_id}/block`; `GET /connections` |
 | Conversations | `POST /conversations`; `GET /conversations`; `GET /conversations/{conversation_id}` |
 | Notifications | `GET /api/v1/notifications/unread-count` |
 | Messages | `POST /conversations/{conversation_id}/messages`; `GET /conversations/{conversation_id}/messages`; `GET /messages/{message_id}`; `PATCH /messages/{message_id}`; `DELETE /messages/{message_id}`; `POST /messages/{message_id}/delivery`; `POST /messages/{message_id}/read`; `POST /conversations/{conversation_id}/messages/delivery`; `POST /conversations/{conversation_id}/messages/read` |

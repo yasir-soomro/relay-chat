@@ -1,72 +1,86 @@
-export function ConversationPreview() {
+export function ConversationPreview({ compact = false }: { compact?: boolean }) {
   return (
     <div
-      aria-label="Illustration of a private conversation"
-      className="relative mx-auto w-full max-w-lg"
+      aria-label="Illustrative preview of a one-to-one Relay conversation"
+      className="landing-card relative mx-auto w-full max-w-lg rounded-3xl"
       role="img"
     >
       <div
         aria-hidden="true"
-        className="absolute -left-7 top-16 size-20 rounded-full bg-accent/70 blur-2xl sm:-left-10 sm:size-28"
+        className="absolute -left-5 top-12 size-24 rounded-full bg-accent blur-2xl sm:-left-8 sm:size-32"
       />
       <div
         aria-hidden="true"
-        className="absolute -right-4 bottom-12 size-24 rounded-full bg-[#dbe8cd] blur-2xl sm:-right-8 sm:size-36"
+        className="absolute -right-4 bottom-10 size-28 rounded-full bg-soft blur-2xl sm:-right-8 sm:size-36"
       />
 
-      <div className="relative rounded-[2rem] border border-white/80 bg-white/80 p-3 shadow-card backdrop-blur sm:rotate-[2deg] sm:p-4">
-        <div className="rounded-[1.5rem] bg-canvas p-5 sm:p-7">
-          <div className="flex items-center justify-between border-b border-line pb-5">
+      <div className="relative rounded-3xl border border-line bg-surface p-3 shadow-card sm:p-4">
+        <div className="rounded-2xl bg-canvas p-4 sm:p-6">
+          <div className="flex items-center justify-between border-b border-line pb-4">
             <div className="flex items-center gap-3">
-              <div className="grid size-11 place-items-center rounded-full bg-[#d9e8d4] text-sm font-semibold text-moss">
-                J
-              </div>
+              <span
+                aria-hidden="true"
+                className="grid size-10 place-items-center rounded-full bg-accent text-xs font-semibold text-primary"
+              >
+                R
+              </span>
               <div>
-                <p className="text-sm font-semibold text-ink">Just between us</p>
-                <p className="mt-1 text-xs text-muted">A space for your people</p>
+                <p className="text-sm font-semibold text-ink">Conversation</p>
+                <p className="mt-0.5 text-xs text-muted">One-to-one</p>
               </div>
             </div>
+            <span className="rounded-full bg-accent px-3 py-1 text-[11px] font-semibold text-primary">
+              Connected
+            </span>
+          </div>
+
+          <div className="flex min-h-60 flex-col justify-end gap-3 py-5 sm:min-h-64">
+            <p className="max-w-[84%] self-start rounded-2xl rounded-bl-md border border-line bg-surface px-4 py-3 text-sm leading-5 text-ink">
+              {compact ? "Thanks for connecting." : "Thanks for reaching out."}
+            </p>
+            <div className="max-w-[84%] self-end">
+              <p className="rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm leading-5 text-primary-foreground">
+                Glad we connected.
+              </p>
+              <p className="mt-1.5 pr-1 text-right text-[11px] text-muted">
+                {compact ? "Read" : "Delivered"}
+              </p>
+            </div>
+            {compact ? null : (
+              <p className="max-w-[84%] self-start rounded-2xl rounded-bl-md border border-line bg-surface px-4 py-3 text-sm leading-5 text-ink">
+                Looking forward to talking.
+              </p>
+            )}
+            <div className="max-w-[84%] self-end">
+              <p className="rounded-2xl rounded-br-md bg-primary px-4 py-3 text-sm leading-5 text-primary-foreground">
+                {compact ? "Good to hear from you." : "Me too."}
+              </p>
+              <p className="mt-1.5 pr-1 text-right text-[11px] text-muted">
+                Read
+              </p>
+            </div>
+          </div>
+
+          <div className="flex min-h-11 items-center gap-3 rounded-xl border border-line bg-surface px-4">
+            <span className="flex-1 text-sm text-muted">Write a message…</span>
             <span
               aria-hidden="true"
-              className="flex gap-1"
+              className="grid size-7 place-items-center rounded-lg bg-primary text-xs font-semibold text-primary-foreground"
             >
-              <span className="size-1 rounded-full bg-muted/50" />
-              <span className="size-1 rounded-full bg-muted/50" />
-              <span className="size-1 rounded-full bg-muted/50" />
+              ↑
             </span>
           </div>
-
-          <div className="flex min-h-64 flex-col justify-end gap-3 py-6 sm:min-h-72">
-            <p className="max-w-[82%] self-start rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm leading-6 text-ink shadow-sm">
-              Saving you a seat by the window.
-            </p>
-            <p className="max-w-[82%] self-end rounded-2xl rounded-br-md bg-moss px-4 py-3 text-sm leading-6 text-white">
-              Already looking forward to it.
-            </p>
-            <p className="max-w-[82%] self-start rounded-2xl rounded-bl-md bg-white px-4 py-3 text-sm leading-6 text-ink shadow-sm">
-              Me too. See you soon!
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-full border border-line bg-white px-4 py-3">
-            <span className="flex-1 text-sm text-muted">Write something kind...</span>
-            <span className="grid size-8 place-items-center rounded-full bg-accent text-[10px] font-semibold text-ink">
-              Send
-            </span>
-          </div>
+          {compact ? null : (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[10px] text-muted">
+              <span>Message statuses</span>
+              <span className="flex gap-2">
+                <span>Sent</span>
+                <span>Delivered</span>
+                <span>Read</span>
+              </span>
+            </div>
+          )}
         </div>
-      </div>
-
-      <div className="motion-pop absolute -bottom-5 -left-1 flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-card sm:-left-8">
-        <span className="grid size-9 place-items-center rounded-full bg-soft text-moss">
-          <span
-            aria-hidden="true"
-            className="size-2 rotate-45 border-b-2 border-r-2 border-moss"
-          />
-        </span>
-        <span className="text-xs font-medium leading-5 text-ink">
-          Here when you&apos;re<br />ready to reconnect
-        </span>
       </div>
     </div>
   );

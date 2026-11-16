@@ -40,7 +40,7 @@ export function ConversationParticipant({
       {profile && linkToProfile ? (
         <Link
           aria-label={`View ${displayName}'s profile`}
-          className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-moss"
+          className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-focus"
           href={`/app/users/${encodeURIComponent(userId)}`}
         >
           {details}

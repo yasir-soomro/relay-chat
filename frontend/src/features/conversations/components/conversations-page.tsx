@@ -20,7 +20,7 @@ export function ConversationsPage() {
 
   return (
     <section aria-labelledby="conversations-heading" className="mx-auto max-w-5xl">
-      <p className="text-sm font-medium text-moss">Your messages</p>
+      <p className="text-sm font-medium text-primary">Your messages</p>
       <h1
         className="mt-2 text-3xl font-medium tracking-[-0.055em] text-ink sm:text-4xl"
         id="conversations-heading"

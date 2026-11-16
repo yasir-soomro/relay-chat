@@ -45,7 +45,7 @@ function NotificationToastItem({
     >
       <Link
         aria-label="Open conversation with a new message"
-        className="min-w-0 flex-1 rounded-md text-sm font-semibold text-ink focus-visible:outline-moss"
+        className="min-w-0 flex-1 rounded-md text-sm font-semibold text-ink focus-visible:outline-focus"
         href={`/conversations/${encodeURIComponent(toast.conversationId)}`}
       >
         <span className="block">New message</span>
@@ -55,7 +55,7 @@ function NotificationToastItem({
       </Link>
       <button
         aria-label="Dismiss new message notification"
-        className="shrink-0 rounded-md px-2 py-1 text-sm font-medium text-muted transition-colors hover:bg-soft hover:text-ink focus-visible:outline-moss motion-reduce:transition-none"
+        className="shrink-0 rounded-md px-2 py-1 text-sm font-medium text-muted transition-colors hover:bg-soft hover:text-ink focus-visible:outline-focus motion-reduce:transition-none"
         onClick={() => onDismiss(toast.id)}
         type="button"
       >

@@ -1,7 +1,7 @@
 export default function AppHomePage() {
   return (
     <section aria-labelledby="workspace-heading" className="mx-auto max-w-3xl">
-      <p className="text-sm font-medium text-moss">Your space</p>
+      <p className="text-sm font-medium text-primary">Your space</p>
       <h1
         className="mt-3 text-3xl font-medium tracking-[-0.055em] text-ink sm:text-4xl"
         id="workspace-heading"

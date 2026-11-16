@@ -74,6 +74,14 @@ class ConnectionServiceStub:
         self.actions.append(("reject", recipient_id, connection_id))
         return self._response(uuid4(), recipient_id, ConnectionStatus.REJECTED)
 
+    async def cancel_request(
+        self,
+        connection_id: UUID,
+        requester_id: UUID,
+    ) -> ConnectionResponse:
+        self.actions.append(("cancel", requester_id, connection_id))
+        return self._response(requester_id, uuid4(), ConnectionStatus.REMOVED)
+
     async def remove_connection(
         self,
         user_id: UUID,
@@ -137,7 +145,11 @@ async def test_connection_routes_require_authentication(
         "/connections/requests",
         json={"recipient_id": str(uuid4())},
     )
+    cancellation = await connection_client.delete(
+        f"/connections/requests/{uuid4()}",
+    )
     assert response.status_code == 401
+    assert cancellation.status_code == 401
 
 
 @pytest.mark.asyncio
@@ -224,11 +236,16 @@ async def test_request_lifecycle_and_lists_use_authenticated_identity(
     rejected_action = await connection_client.post(
         f"/connections/requests/{connection_id}/reject"
     )
+    cancelled_action = await connection_client.delete(
+        f"/connections/requests/{connection_id}"
+    )
     removed = await connection_client.delete(f"/connections/{other_user_id}")
     unblocked = await connection_client.delete(f"/connections/{other_user_id}/block")
 
     assert incoming.status_code == outgoing.status_code == accepted.status_code == 200
     assert accepted_action.status_code == rejected_action.status_code == 200
+    assert cancelled_action.status_code == 200
+    assert cancelled_action.json()["status"] == "removed"
     assert removed.status_code == 200
     assert unblocked.status_code == 204
     assert service.actions == [
@@ -237,6 +254,7 @@ async def test_request_lifecycle_and_lists_use_authenticated_identity(
         ("connections", connection_actor.id, None),
         ("accept", connection_actor.id, connection_id),
         ("reject", connection_actor.id, connection_id),
+        ("cancel", connection_actor.id, connection_id),
         ("remove", connection_actor.id, other_user_id),
     ]
     assert service.block_call == (connection_actor.id, other_user_id)

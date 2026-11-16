@@ -37,7 +37,7 @@ export function ConversationInboxList({
   if (error) {
     return (
       <div className="mt-7 rounded-card border border-line bg-surface p-6 sm:p-8">
-        <p className="text-sm leading-6 text-[#8e3027]" role="alert">
+        <p className="text-sm leading-6 text-danger" role="alert">
           {error}
         </p>
         <Button className="mt-4" onClick={onRetry} type="button">

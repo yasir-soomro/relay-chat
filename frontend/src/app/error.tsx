@@ -12,7 +12,7 @@ export default function ErrorPage({
   return (
     <main className="grid min-h-screen place-items-center px-5 py-16">
       <div className="w-full max-w-lg text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-moss">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
           A small interruption
         </p>
         <h1 className="mt-4 text-4xl font-medium tracking-[-0.06em] text-ink">

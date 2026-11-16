@@ -140,9 +140,12 @@ GET   /users/{user_id}
 
 ## Connections and blocking
 
-Authenticated users can send, accept, reject, and remove connection requests;
-list incoming/outgoing requests and accepted connections; and block/unblock
-users. A block cancels pending requests, terminates an accepted connection,
+Authenticated users can send, cancel their own pending, accept, reject, and
+remove connection requests; list incoming/outgoing requests and accepted
+connections; and block/unblock users. Cancellation is available only to the
+original requester while the request is pending. It retains the connection
+record as removed and permits a later request without a rejection cooldown.
+A block cancels pending requests, terminates an accepted connection,
 and hides profiles in both directions. Unblocking restores profile visibility
 but does not reinstate connection status; a new request must be accepted before
 the users can connect again. Connection rows are retained when removed, and
@@ -161,6 +164,7 @@ GET    /connections/requests/incoming
 GET    /connections/requests/outgoing
 POST   /connections/requests/{connection_id}/accept
 POST   /connections/requests/{connection_id}/reject
+DELETE /connections/requests/{connection_id}
 DELETE /connections/{other_user_id}
 POST   /connections/{other_user_id}/block
 DELETE /connections/{other_user_id}/block

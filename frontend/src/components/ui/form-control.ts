@@ -1,2 +1,2 @@
 export const formControlClassName =
-  "min-h-12 w-full rounded-xl border border-line bg-white px-4 py-3 text-base text-ink outline-none transition-[border-color,box-shadow] placeholder:text-muted/70 hover:border-moss/50 focus:border-moss focus:ring-4 focus:ring-moss/10 aria-[invalid=true]:border-[#b5463a] aria-[invalid=true]:focus:ring-[#b5463a]/10";
+  "min-h-12 w-full rounded-control border border-line bg-surface px-4 py-3 text-body text-ink outline-none transition-[border-color,box-shadow,background-color] placeholder:text-muted/70 hover:border-focus/60 focus:border-focus focus:ring-4 focus:ring-focus/15 aria-[invalid=true]:border-danger aria-[invalid=true]:focus:ring-danger/15 disabled:cursor-not-allowed disabled:bg-soft disabled:text-muted";

@@ -53,7 +53,7 @@ export function PublicProfilePage({ userId }: PublicProfilePageProps) {
 
   return (
     <section aria-labelledby="public-profile-heading" className="mx-auto max-w-3xl">
-      <p className="text-sm font-medium text-moss">Relay member</p>
+      <p className="text-sm font-medium text-primary">Relay member</p>
       <h1
         className="mt-2 text-3xl font-medium tracking-[-0.055em] text-ink sm:text-4xl"
         id="public-profile-heading"
@@ -70,12 +70,12 @@ export function PublicProfilePage({ userId }: PublicProfilePageProps) {
         </div>
       ) : error ? (
         <div className="mt-8 rounded-3xl border border-line bg-surface p-6 sm:p-8">
-          <p className="text-sm leading-6 text-[#8e3027]" role="alert">
+          <p className="text-sm leading-6 text-danger" role="alert">
             {error}
           </p>
           {error === "This profile could not be found." ? (
             <Link
-              className="mt-4 inline-flex min-h-11 items-center font-semibold text-moss underline underline-offset-4"
+              className="mt-4 inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
               href="/app"
             >
               Return to your workspace

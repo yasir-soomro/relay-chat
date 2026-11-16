@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
+import { RelayIcon } from "@/components/ui/relay-icon";
 import type { SiteNavigationItem } from "@/types/site";
 import { useOptionalNotifications } from "@/features/notifications/providers/notifications-provider";
 
@@ -9,12 +11,14 @@ type NavigationLinksProps = {
   currentHref?: string;
   direction?: "horizontal" | "vertical";
   items: readonly SiteNavigationItem[];
+  renderIcon?: (item: SiteNavigationItem) => ReactNode;
 };
 
 export function NavigationLinks({
   currentHref,
   direction = "horizontal",
   items,
+  renderIcon,
 }: NavigationLinksProps) {
   const pathname = usePathname();
   const activeHref = currentHref ?? pathname;
@@ -37,7 +41,7 @@ export function NavigationLinks({
                 ? `${item.label}, ${unreadCount} unread messages`
                 : undefined
             }
-            className={`block rounded-lg px-3 py-3 text-sm font-medium transition-colors focus-visible:outline-moss ${
+            className={`block rounded-lg px-3 py-3 text-sm font-medium transition-colors active:translate-y-px focus-visible:outline-focus ${
               item.href === activeHref
                 ? "bg-soft text-ink"
                 : "text-muted hover:bg-soft hover:text-ink"
@@ -49,11 +53,22 @@ export function NavigationLinks({
             href={item.href}
           >
             <span className="flex items-center justify-between gap-3">
-              {item.label}
+              <span className="flex min-w-0 items-center gap-2.5">
+                {renderIcon ? (
+                  <span aria-hidden="true" className="shrink-0">
+                    {renderIcon(item)}
+                  </span>
+                ) : item.icon ? (
+                  <span aria-hidden="true" className="shrink-0">
+                    <RelayIcon name={item.icon} />
+                  </span>
+                ) : null}
+                <span>{item.label}</span>
+              </span>
               {item.href === "/notifications" && unreadCount > 0 ? (
                 <span
                   aria-hidden="true"
-                  className="inline-flex min-w-5 items-center justify-center rounded-full bg-moss px-1.5 py-0.5 text-xs font-semibold text-white"
+                  className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-semibold text-ink"
                 >
                   {unreadCount > 99 ? "99+" : unreadCount}
                 </span>

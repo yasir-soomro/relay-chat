@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConnectionsPage } from "@/features/connections/components/connections-page";
 import { ConnectionsProvider } from "@/features/connections/providers/connections-provider";
+import type { ConnectionRecord } from "@/features/connections/types";
 
 const { authenticatedFetch } = vi.hoisted(() => ({
   authenticatedFetch: vi.fn(),
@@ -50,6 +51,103 @@ function renderConnectionsPage() {
 describe("ConnectionsPage", () => {
   beforeEach(() => {
     authenticatedFetch.mockReset();
+  });
+
+  it("supports keyboard navigation between the accessible connection tabs", async () => {
+    authenticatedFetch.mockImplementation(() =>
+      Promise.resolve(jsonResponse({ items: [] })),
+    );
+    renderConnectionsPage();
+
+    expect(await screen.findByText("No incoming requests")).toBeTruthy();
+    const incomingTab = screen.getByRole("tab", { name: /Incoming/ });
+    const outgoingTab = screen.getByRole("tab", { name: /Outgoing/ });
+
+    fireEvent.keyDown(incomingTab, { key: "ArrowRight" });
+
+    expect(outgoingTab.getAttribute("aria-selected")).toBe("true");
+    expect(document.activeElement).toBe(outgoingTab);
+    expect(screen.getByRole("heading", { name: "Requests you’ve sent" })).toBeTruthy();
+    expect(await screen.findByText("No sent requests")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Connections/ }));
+    expect(await screen.findByText("No connections yet")).toBeTruthy();
+  });
+
+  it("cancels a sent request through the existing connection API", async () => {
+    const outgoingRequest: ConnectionRecord = {
+      id: "outgoing-request-id",
+      requester_id: "current-user-id",
+      recipient_id: publicProfile.id,
+      status: "pending",
+      requested_at: "2026-11-08T00:00:00Z",
+      responded_at: null,
+      rejected_at: null,
+      removed_at: null,
+    };
+    let activeRequest: typeof outgoingRequest | null = outgoingRequest;
+    authenticatedFetch.mockImplementation(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const path = String(input);
+        const method = init?.method ?? "GET";
+        if (path === "/connections/requests/outgoing") {
+          return jsonResponse({
+            items: activeRequest?.status === "pending" ? [activeRequest] : [],
+          });
+        }
+        if (path === `/users/${publicProfile.id}`) {
+          return jsonResponse(publicProfile);
+        }
+        if (
+          path === `/connections/requests/${outgoingRequest.id}` &&
+          method === "DELETE"
+        ) {
+          activeRequest = {
+            ...outgoingRequest,
+            status: "removed",
+            removed_at: "2026-11-08T00:01:00Z",
+          };
+          return jsonResponse(activeRequest);
+        }
+        return jsonResponse({ items: [] });
+      },
+    );
+    renderConnectionsPage();
+
+    expect(await screen.findByText("No incoming requests")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /Outgoing/ }));
+    expect(await screen.findByText("Relay Friend")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel Request" }));
+
+    expect(await screen.findByText("No sent requests")).toBeTruthy();
+    expect(
+      authenticatedFetch.mock.calls.some(
+        ([path, init]) =>
+          path === `/connections/requests/${outgoingRequest.id}` &&
+          init?.method === "DELETE",
+      ),
+    ).toBe(true);
+    expect(screen.getByText("Connection request canceled.")).toBeTruthy();
+  });
+
+  it("shows a retryable error when the connection lists cannot be loaded", async () => {
+    let shouldFail = true;
+    authenticatedFetch.mockImplementation(() =>
+      Promise.resolve(
+        shouldFail
+          ? jsonResponse({ detail: "Unavailable" }, 503)
+          : jsonResponse({ items: [] }),
+      ),
+    );
+    renderConnectionsPage();
+
+    expect(
+      await screen.findByText("Relay is temporarily unavailable. Please try again shortly."),
+    ).toBeTruthy();
+    shouldFail = false;
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+    expect(await screen.findByText("No incoming requests")).toBeTruthy();
   });
 
   it("accepts incoming requests and moves them out of the pending list", async () => {

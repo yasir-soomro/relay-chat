@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes, ReactNode } from "react";
-import { formControlClassName } from "@/components/ui/form-control";
+import { Input } from "@/components/ui/input";
 
 type AuthFieldProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -38,12 +38,11 @@ export function AuthField({
         </label>
         {trailing}
       </div>
-      <input
+      <Input
         {...inputProps}
         aria-describedby={describedBy || undefined}
         aria-invalid={Boolean(error)}
         autoComplete={autoComplete}
-        className={formControlClassName}
         id={id}
       />
       {hint ? (
@@ -52,7 +51,7 @@ export function AuthField({
         </p>
       ) : null}
       {error ? (
-        <p className="text-sm text-[#9f342a]" id={errorId}>
+        <p className="text-sm text-danger" id={errorId}>
           {error}
         </p>
       ) : null}

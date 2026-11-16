@@ -134,6 +134,18 @@ async def reject_request(
         _raise_http_error(error)
 
 
+@router.delete("/requests/{connection_id}", response_model=ConnectionResponse)
+async def cancel_request(
+    connection_id: UUID,
+    current_user: CurrentUser,
+    service: Annotated[ConnectionService, Depends(get_connection_service)],
+) -> ConnectionResponse:
+    try:
+        return await service.cancel_request(connection_id, current_user.id)
+    except ConnectionManagementError as error:
+        _raise_http_error(error)
+
+
 @router.delete("/{other_user_id}", response_model=ConnectionResponse)
 async def remove_connection(
     other_user_id: UUID,

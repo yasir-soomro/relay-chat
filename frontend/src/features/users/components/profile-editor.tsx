@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { surfaceCardClassName } from "@/components/ui/card";
-import { formControlClassName } from "@/components/ui/form-control";
+import { Input, Textarea } from "@/components/ui/input";
 import { UserRequestError } from "@/features/users/api";
 import { validateUserProfile } from "@/features/users/schemas";
 import type {
@@ -94,11 +94,10 @@ export function ProfileEditor({
         <label className="text-sm font-medium text-ink" htmlFor="profile-display-name">
           Display name
         </label>
-        <input
+        <Input
           aria-describedby={fieldError("display_name")}
           aria-invalid={Boolean(fieldErrors.display_name)}
           autoComplete="name"
-          className={formControlClassName}
           disabled={isSaving}
           id="profile-display-name"
           maxLength={50}
@@ -108,7 +107,7 @@ export function ProfileEditor({
           value={values.display_name}
         />
         {fieldErrors.display_name ? (
-          <p className="text-sm text-[#9f342a]" id="display_name-error">
+          <p className="text-sm text-danger" id="display_name-error">
             {fieldErrors.display_name}
           </p>
         ) : null}
@@ -118,11 +117,10 @@ export function ProfileEditor({
         <label className="text-sm font-medium text-ink" htmlFor="profile-username">
           Username
         </label>
-        <input
+        <Input
           aria-describedby={fieldError("username")}
           aria-invalid={Boolean(fieldErrors.username)}
           autoComplete="username"
-          className={formControlClassName}
           disabled={isSaving}
           id="profile-username"
           maxLength={30}
@@ -136,7 +134,7 @@ export function ProfileEditor({
           3–30 lowercase letters, numbers, or underscores.
         </p>
         {fieldErrors.username ? (
-          <p className="text-sm text-[#9f342a]" id="username-error">
+          <p className="text-sm text-danger" id="username-error">
             {fieldErrors.username}
           </p>
         ) : null}
@@ -151,10 +149,10 @@ export function ProfileEditor({
             {values.bio.length}/160
           </span>
         </div>
-        <textarea
+        <Textarea
           aria-describedby={`profile-bio-count${fieldError("bio") ? " bio-error" : ""}`}
           aria-invalid={Boolean(fieldErrors.bio)}
-          className={`${formControlClassName} min-h-32 resize-y`}
+          className="min-h-32 resize-y"
           disabled={isSaving}
           id="profile-bio"
           maxLength={160}
@@ -163,7 +161,7 @@ export function ProfileEditor({
           value={values.bio}
         />
         {fieldErrors.bio ? (
-          <p className="text-sm text-[#9f342a]" id="bio-error">
+          <p className="text-sm text-danger" id="bio-error">
             {fieldErrors.bio}
           </p>
         ) : null}
@@ -172,7 +170,7 @@ export function ProfileEditor({
       {formError ? (
         <p
           aria-live="polite"
-          className="rounded-xl border border-[#efd2cc] bg-[#fff7f5] px-4 py-3 text-sm leading-6 text-[#8e3027]"
+          className="rounded-xl border border-danger/20 bg-danger-soft px-4 py-3 text-sm leading-6 text-danger"
           role="alert"
         >
           {formError}
@@ -190,6 +188,7 @@ export function ProfileEditor({
         </Button>
         <Button
           disabled={isSaving}
+          loading={isSaving}
           type="submit"
         >
           {isSaving ? "Saving..." : "Save profile"}

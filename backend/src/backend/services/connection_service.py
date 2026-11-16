@@ -162,6 +162,28 @@ class ConnectionService:
         await self._repository.commit()
         return ConnectionResponse.model_validate(connection)
 
+    async def cancel_request(
+        self,
+        connection_id: UUID,
+        requester_id: UUID,
+    ) -> ConnectionResponse:
+        connection = await self._get_request_pair(connection_id, requester_id)
+        if connection.requester_id != requester_id:
+            raise ConnectionPermissionError
+        await self._lock_pair(connection.requester_id, connection.recipient_id)
+        await self._ensure_not_blocked(
+            connection.requester_id,
+            connection.recipient_id,
+        )
+        connection = await self._get_locked_connection(connection_id)
+        if connection.requester_id != requester_id:
+            raise ConnectionPermissionError
+        if connection.status != "pending":
+            raise InvalidConnectionTransitionError
+        await self._repository.update_status(connection, "removed", datetime.now(UTC))
+        await self._repository.commit()
+        return ConnectionResponse.model_validate(connection)
+
     async def remove_connection(
         self,
         user_id: UUID,
