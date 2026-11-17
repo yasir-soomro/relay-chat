@@ -27,7 +27,6 @@ const connectionDateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "numeric",
   month: "short",
   timeZone: "UTC",
-  year: "numeric",
 });
 
 function otherUserId(connection: ConnectionRecord, currentUserId: string) {
@@ -36,14 +35,18 @@ function otherUserId(connection: ConnectionRecord, currentUserId: string) {
     : connection.requester_id;
 }
 
-function formatConnectionDate(value: string | null) {
-  if (!value) {
-    return "";
-  }
+function formatRelativeRequestDate(value: string | null) {
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
+  if (Number.isNaN(date.getTime())) return "";
+  const now = Date.now();
+  const elapsed = Math.max(0, now - date.getTime());
+  const hours = Math.floor(elapsed / 3_600_000);
+  if (hours < 24) {
+    return hours < 1 ? "Just now" : `${hours}h ago`;
   }
+  const days = Math.floor(hours / 24);
+  if (days < 7) return days === 1 ? "Yesterday" : `${days}d ago`;
   return connectionDateFormatter.format(date);
 }
 
@@ -170,14 +173,14 @@ export function ConnectionListSection({
               connection.status === "accepted"
                 ? connection.responded_at
                 : connection.requested_at;
-            const activityDate = formatConnectionDate(activityTimestamp);
+            const activityDate = formatRelativeRequestDate(activityTimestamp);
 
             return (
               <li
-                className="connections-card grid min-w-0 gap-4 rounded-xl border border-line bg-surface p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-5"
+                className="connections-card grid min-w-0 gap-3 rounded-xl border border-line bg-surface p-3 shadow-sm sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-4"
                 key={connection.id}
               >
-                <div className="flex min-w-0 items-center gap-3">
+                <div className="flex min-w-0 items-start gap-3 sm:items-center">
                   {profile ? (
                     <>
                       <ProfileAvatar
@@ -244,7 +247,7 @@ export function ConnectionListSection({
                 <div className="connections-card-actions flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-line pt-3 sm:justify-end sm:border-0 sm:pt-0">
                   {profile ? (
                     <Link
-                      className="min-h-9 shrink-0 self-center text-xs font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-focus"
+                      className="inline-flex min-h-9 shrink-0 items-center self-center rounded-lg px-2 text-xs font-semibold text-primary underline-offset-4 hover:bg-soft hover:underline focus-visible:outline-focus"
                       href={`/app/users/${encodeURIComponent(profile.id)}`}
                     >
                       View profile
@@ -254,6 +257,7 @@ export function ConnectionListSection({
                     allowCancelRequest={allowCancelRequest}
                     compact
                     displayName={profile?.display_name ?? "this member"}
+                    showStatusLabel={false}
                     userId={userId}
                   />
                 </div>

@@ -17,7 +17,6 @@ const tabs: { id: ConnectionTab; label: string }[] = [
 const tabCopy: Record<
   ConnectionTab,
   {
-    eyebrow: string;
     heading: string;
     description: string;
     listTitle: string;
@@ -27,10 +26,8 @@ const tabCopy: Record<
   }
 > = {
   incoming: {
-    eyebrow: "Your circle starts here",
     heading: "Connection requests",
-    description:
-      "A familiar face or someone new. You decide who gets to say hello.",
+    description: "A familiar face or someone new. You decide who gets to say hello.",
     listTitle: "Waiting for you",
     countLabel: "request",
     emptyTitle: "No incoming requests",
@@ -38,19 +35,16 @@ const tabCopy: Record<
       "When someone sends a connection request, you can review it here.",
   },
   outgoing: {
-    eyebrow: "Your circle starts here",
-    heading: "Requests you’ve sent",
-    description: "Keep track of the people you have reached out to.",
+    heading: "Connection requests",
+    description: "A familiar face or someone new. You decide who gets to say hello.",
     listTitle: "Awaiting a reply",
     countLabel: "request",
     emptyTitle: "No sent requests",
     emptyDescription: "Requests you send will appear here.",
   },
   accepted: {
-    eyebrow: "Your people",
-    heading: "Your connections",
-    description:
-      "Your mutual connections are ready for a private, one-to-one conversation.",
+    heading: "Connection requests",
+    description: "A familiar face or someone new. You decide who gets to say hello.",
     listTitle: "Connected",
     countLabel: "connection",
     emptyTitle: "No connections yet",
@@ -88,14 +82,14 @@ function ConnectionSteps() {
   return (
     <ol
       aria-label="How Relay connections work"
-      className="connections-steps mt-8 grid gap-2 rounded-2xl bg-soft p-4 sm:grid-cols-3 sm:gap-4 sm:p-5"
+      className="connections-steps mt-8 grid gap-0 overflow-hidden rounded-xl border border-line bg-soft sm:grid-cols-3"
     >
       {steps.map((step) => (
-        <li className="min-w-0 px-1 py-1" key={step.title}>
-          <p className="text-xs font-semibold tracking-wide text-primary">
+        <li className="min-w-0 px-5 py-5 sm:px-6" key={step.title}>
+          <p className="text-[11px] font-bold tracking-wide text-primary">
             {step.title}
           </p>
-          <p className="mt-1 text-xs leading-5 text-muted">
+          <p className="mt-2 text-xs leading-5 text-muted">
             {step.description}
           </p>
         </li>
@@ -154,14 +148,11 @@ export function ConnectionsPage() {
   return (
     <section
       aria-labelledby="connections-heading"
-      className="connections-page mx-auto w-full max-w-5xl"
+      className="connections-page mx-auto w-full max-w-5xl pb-2"
     >
       <header className="connections-header">
-        <p className="text-[0.68rem] font-bold uppercase tracking-[0.14em] text-primary">
-          {copy.eyebrow}
-        </p>
         <h1
-          className="mt-2 text-3xl font-semibold leading-tight tracking-[-0.045em] text-ink sm:text-4xl"
+          className="text-[1.7rem] font-semibold leading-tight tracking-[-0.035em] text-ink sm:text-[2rem]"
           id="connections-heading"
         >
           {copy.heading}
@@ -173,7 +164,7 @@ export function ConnectionsPage() {
 
       <div
         aria-label="Connection lists"
-        className="connections-tabs mt-6 flex w-full border-b border-line"
+        className="connections-tabs mt-5 flex w-full border-b border-line"
         role="tablist"
       >
         {tabs.map((tab) => {

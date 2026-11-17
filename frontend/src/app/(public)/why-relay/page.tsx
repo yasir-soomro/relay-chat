@@ -11,7 +11,7 @@ const principles = [
   {
     title: "Connection is mutual",
     description:
-      "Messaging is available only after a connection request is accepted, while the connection is active and neither person has blocked the other.",
+      "Messaging is available only after a connection request is accepted and the connection is active.",
   },
   {
     title: "Conversations stay one-to-one",
@@ -21,7 +21,7 @@ const principles = [
   {
     title: "Your boundaries stay yours",
     description:
-      "You can remove a connection or block someone. Either stops new messages; existing history remains available to participants.",
+      "You can remove a connection. That stops new messages while existing history remains available to participants.",
   },
 ] as const;
 

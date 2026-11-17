@@ -33,8 +33,3 @@ class ConnectionResponse(BaseModel):
 
 class ConnectionListResponse(BaseModel):
     items: list[ConnectionResponse]
-
-
-class BlockResponse(BaseModel):
-    blocked_user_id: UUID
-    created_at: datetime

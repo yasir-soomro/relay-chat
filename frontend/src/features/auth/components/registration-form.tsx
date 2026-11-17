@@ -36,7 +36,7 @@ export function RegistrationForm() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/app");
+      router.replace("/conversations");
     }
   }, [router, status]);
 

@@ -66,7 +66,7 @@ export function MessageTimeline({
   return (
     <div
       aria-label="Message history"
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-4 sm:px-6"
+      className="messages-timeline flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 py-4 sm:px-5"
       onScroll={(event) => {
         const element = event.currentTarget;
         isNearBottom.current =
@@ -110,7 +110,7 @@ export function MessageTimeline({
       ) : (
         <ol
           aria-label="Messages, oldest first"
-          className="mt-auto flex min-w-0 flex-col gap-3"
+          className="messages-timeline-list mt-auto flex min-w-0 flex-col gap-2.5"
         >
           {messages.map((message) => (
             <MessageBubble

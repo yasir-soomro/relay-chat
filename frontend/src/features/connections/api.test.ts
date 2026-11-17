@@ -1,12 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  blockUser,
   cancelConnectionRequest,
   ConnectionRequestError,
   listAcceptedConnections,
   rejectConnectionRequest,
   sendConnectionRequest,
-  unblockUser,
 } from "@/features/connections/api";
 
 const connection = {
@@ -106,29 +104,4 @@ describe("connection API", () => {
     );
   });
 
-  it("uses the established block and unblock routes", async () => {
-    const authenticatedFetch = vi
-      .fn()
-      .mockResolvedValueOnce(
-        jsonResponse({
-          blocked_user_id: "recipient-id",
-          created_at: "2026-11-08T00:00:00Z",
-        }),
-      )
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
-
-    await blockUser(authenticatedFetch, "recipient-id");
-    await unblockUser(authenticatedFetch, "recipient-id");
-
-    expect(authenticatedFetch).toHaveBeenNthCalledWith(
-      1,
-      "/connections/recipient-id/block",
-      expect.objectContaining({ method: "POST" }),
-    );
-    expect(authenticatedFetch).toHaveBeenNthCalledWith(
-      2,
-      "/connections/recipient-id/block",
-      expect.objectContaining({ method: "DELETE" }),
-    );
-  });
 });

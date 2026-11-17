@@ -54,7 +54,7 @@ export function MessageComposer({
 
   return (
     <form
-      className="shrink-0 border-t border-line bg-surface px-3 py-3 sm:px-6 sm:py-4"
+      className="messages-composer-form shrink-0 bg-surface px-3 py-3 sm:px-5"
       onSubmit={(event) => void submit(event)}
     >
       {combinedError ? (
@@ -72,7 +72,7 @@ export function MessageComposer({
       </label>
       <div className="flex items-end gap-2 sm:gap-3">
         <textarea
-          className="max-h-48 min-h-12 min-w-0 flex-1 resize-y rounded-2xl border border-line bg-canvas px-4 py-3 text-sm leading-6 text-ink placeholder:text-muted focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/20 disabled:cursor-not-allowed disabled:opacity-70"
+          className="messages-composer-input max-h-36 min-h-10 min-w-0 flex-1 resize-y rounded-xl bg-surface-raised px-3.5 py-2.5 text-xs leading-5 text-ink placeholder:text-muted disabled:cursor-not-allowed disabled:opacity-70"
           disabled={!canSend || isSending}
           id="message-composer"
           onChange={(event) => setContent(event.target.value)}
@@ -81,15 +81,39 @@ export function MessageComposer({
           value={content}
         />
         <Button
-          className="shrink-0 px-4 sm:px-5"
+          aria-label={isSending ? "Sending message" : "Send message"}
+          className="messages-send-button size-10 shrink-0 rounded-xl p-0"
           disabled={!canSend || isSending || !content.trim()}
           loading={isSending}
           type="submit"
         >
-          {isSending ? "Sending…" : "Send"}
+          {isSending ? (
+            <span className="sr-only">Sending…</span>
+          ) : (
+            <svg
+              aria-hidden="true"
+              className="size-4"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="m21 3-7.2 18-3.9-7.9L2 9.2 21 3Z"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M21 3 9.9 13.1"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeWidth="1.8"
+              />
+            </svg>
+          )}
         </Button>
       </div>
-      <p className="mt-2 text-xs text-muted">
+      <p className="mt-1.5 text-[10px] text-muted">
         Press Enter to send · Shift+Enter for a new line
       </p>
     </form>

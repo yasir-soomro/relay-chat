@@ -8,17 +8,6 @@ type MessageBubbleProps = {
   onDelete: (messageId: string) => Promise<void>;
 };
 
-function formatTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Time unavailable";
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
 export function MessageBubble({
   message,
   isOwn,
@@ -29,18 +18,25 @@ export function MessageBubble({
   const wasEdited =
     !isDeleted &&
     Date.parse(message.updated_at) > Date.parse(message.created_at);
+  const timestamp = new Date(message.sent_at);
+  const formattedTime = Number.isNaN(timestamp.getTime())
+    ? "Time unavailable"
+    : new Intl.DateTimeFormat(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(timestamp);
 
   return (
     <li
-      className={`flex min-w-0 ${isOwn ? "justify-end" : "justify-start"}`}
+      className={`messages-bubble-row flex min-w-0 ${isOwn ? "justify-end" : "justify-start"}`}
       data-message-id={message.id}
     >
       <article
         aria-label={isOwn ? "Your message" : "Message from participant"}
-        className={`min-w-0 max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[75%] ${
+        className={`messages-bubble min-w-0 max-w-[90%] rounded-2xl px-3 py-2 sm:max-w-[75%] ${
           isOwn
             ? "rounded-br-md bg-primary text-primary-foreground"
-            : "rounded-bl-md border border-line bg-surface text-ink"
+            : "rounded-bl-md bg-surface-raised text-ink"
         }`}
       >
         {isDeleted ? (
@@ -57,7 +53,7 @@ export function MessageBubble({
             isOwn ? "text-primary-foreground/75" : "text-muted"
           }`}
         >
-          <time dateTime={message.sent_at}>{formatTime(message.sent_at)}</time>
+          <time dateTime={message.sent_at}>{formattedTime}</time>
           {wasEdited ? <span>Edited</span> : null}
           {!isDeleted ? (
             <span aria-label={`Message status: ${message.status}`}>

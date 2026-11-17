@@ -17,9 +17,9 @@ def test_authentication_and_user_routes_are_registered() -> None:
         "/connections/requests/{connection_id}/accept",
         "/connections/requests/{connection_id}/reject",
         "/connections/{other_user_id}",
-        "/connections/{other_user_id}/block",
         "/users/me",
         "/api/v1/users/discover",
         "/health",
         "/health/ready",
     }.issubset(route_paths)
+    assert not any(path.endswith("/block") for path in route_paths)

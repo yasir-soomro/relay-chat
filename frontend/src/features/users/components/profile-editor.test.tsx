@@ -36,7 +36,7 @@ describe("ProfileEditor", () => {
     fireEvent.change(screen.getByLabelText("Username"), {
       target: { value: "Not Valid" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     expect(
       screen.getByText("Use 3–30 lowercase letters, numbers, or underscores."),
     ).toBeTruthy();
@@ -48,7 +48,7 @@ describe("ProfileEditor", () => {
     fireEvent.change(screen.getByLabelText("Bio"), {
       target: { value: "A short bio" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledWith({
@@ -58,6 +58,32 @@ describe("ProfileEditor", () => {
       });
     });
     expect(onSaved).toHaveBeenCalledWith(accountProfile);
+  });
+
+  it("updates the public preview while editing", () => {
+    render(
+      <ProfileEditor
+        initialValues={initialValues}
+        onCancel={vi.fn()}
+        onSave={vi.fn()}
+        onSaved={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Full name"), {
+      target: { value: "Preview Person" },
+    });
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: "preview_person" },
+    });
+    fireEvent.change(screen.getByLabelText("Bio"), {
+      target: { value: "Live preview bio" },
+    });
+
+    expect(screen.getByRole("complementary", { name: "Public profile preview" })).toBeTruthy();
+    expect(screen.getAllByText("Preview Person").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("@preview_person").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Live preview bio").length).toBeGreaterThan(0);
   });
 
   it("shows a username conflict beside its field", async () => {
@@ -77,12 +103,41 @@ describe("ProfileEditor", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: "relay_conflict" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     expect(
       await screen.findByText("That username is already in use."),
     ).toBeTruthy();
     expect(screen.getByRole("alert").textContent).toContain(
       "Choose another username",
     );
+  });
+
+  it("disables saving until changed and restores initial values on cancel", () => {
+    const onCancel = vi.fn();
+    render(
+      <ProfileEditor
+        initialValues={initialValues}
+        onCancel={onCancel}
+        onSave={vi.fn()}
+        onSaved={vi.fn()}
+      />,
+    );
+
+    const saveButton = screen.getByRole("button", { name: "Save changes" });
+    expect((saveButton as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("Full name"), {
+      target: { value: "Changed Name" },
+    });
+    expect((saveButton as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect((screen.getByLabelText("Full name") as HTMLInputElement).value).toBe(
+      "Relay User",
+    );
+    expect(onCancel).toHaveBeenCalledOnce();
   });
 });

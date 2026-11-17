@@ -33,8 +33,6 @@ describe("WorkspaceNavigation", () => {
         "aria-current",
       ),
     ).toBe("page");
-    expect(
-      screen.getByRole("link", { name: "Overview" }).getAttribute("href"),
-    ).toBe("/app");
+    expect(screen.queryByRole("link", { name: "Overview" })).toBeNull();
   });
 });

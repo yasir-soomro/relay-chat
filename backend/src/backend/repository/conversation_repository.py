@@ -1,11 +1,11 @@
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy import and_, exists, func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.model.connection import Connection, UserBlock
+from backend.model.connection import Connection
 from backend.model.conversation import Conversation
 from backend.model.message import Message
 from backend.model.user import User
@@ -13,8 +13,6 @@ from backend.model.user import User
 
 class ConversationRepositoryProtocol(Protocol):
     async def lock_pair_users(self, first_id: UUID, second_id: UUID) -> bool: ...
-
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool: ...
 
     async def get_connection_status(
         self, first_id: UUID, second_id: UUID
@@ -53,23 +51,6 @@ class ConversationRepository:
             .with_for_update()
         )
         return len((await self._session.scalars(statement)).all()) == 2
-
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
-        statement = select(
-            exists().where(
-                or_(
-                    and_(
-                        UserBlock.blocker_id == first_id,
-                        UserBlock.blocked_id == second_id,
-                    ),
-                    and_(
-                        UserBlock.blocker_id == second_id,
-                        UserBlock.blocked_id == first_id,
-                    ),
-                )
-            )
-        )
-        return bool(await self._session.scalar(statement))
 
     async def get_connection_status(
         self,

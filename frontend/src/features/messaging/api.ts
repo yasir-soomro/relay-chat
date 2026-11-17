@@ -120,8 +120,8 @@ async function request(
         response.status,
         detail === "You may only modify messages you authored"
           ? "You may only edit or delete messages you sent."
-          : detail === "An accepted, unblocked connection is required to send messages"
-            ? "New messages are unavailable because this is no longer an accepted, unblocked connection."
+          : detail === "An accepted connection is required to send messages"
+            ? "New messages are unavailable because this is no longer an accepted connection."
             : "You do not have permission to perform this message action.",
       );
     }

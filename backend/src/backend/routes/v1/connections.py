@@ -1,21 +1,17 @@
 from typing import Annotated, NoReturn
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.core.dependencies import get_connection_service
 from backend.core.security import CurrentUser
 from backend.schemas.connection import (
-    BlockResponse,
     ConnectionListResponse,
     ConnectionRequestCreate,
     ConnectionResponse,
 )
 from backend.services.connection_service import (
-    BlockAlreadyExistsError,
-    BlockNotFoundError,
     ConnectionAlreadyExistsError,
-    ConnectionBlockedError,
     ConnectionCooldownActiveError,
     ConnectionManagementError,
     ConnectionNotFoundError,
@@ -41,10 +37,7 @@ def _raise_http_error(error: ConnectionManagementError) -> NoReturn:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not allowed to perform this action",
         ) from None
-    if isinstance(
-        error,
-        (ConnectionBlockedError, ConnectionNotFoundError, ConnectionUserNotFoundError),
-    ):
+    if isinstance(error, (ConnectionNotFoundError, ConnectionUserNotFoundError)):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Connection or user not found",
@@ -60,7 +53,6 @@ def _raise_http_error(error: ConnectionManagementError) -> NoReturn:
     if isinstance(
         error,
         (
-            BlockAlreadyExistsError,
             ConnectionAlreadyExistsError,
             DuplicateConnectionRequestError,
             InvalidConnectionTransitionError,
@@ -69,11 +61,6 @@ def _raise_http_error(error: ConnectionManagementError) -> NoReturn:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Connection state does not allow this action",
-        ) from None
-    if isinstance(error, BlockNotFoundError):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Block not found",
         ) from None
     raise error
 
@@ -156,31 +143,6 @@ async def remove_connection(
         return await service.remove_connection(current_user.id, other_user_id)
     except ConnectionManagementError as error:
         _raise_http_error(error)
-
-
-@router.post("/{other_user_id}/block", response_model=BlockResponse)
-async def block_user(
-    other_user_id: UUID,
-    current_user: CurrentUser,
-    service: Annotated[ConnectionService, Depends(get_connection_service)],
-) -> BlockResponse:
-    try:
-        return await service.block_user(current_user.id, other_user_id)
-    except ConnectionManagementError as error:
-        _raise_http_error(error)
-
-
-@router.delete("/{other_user_id}/block", status_code=status.HTTP_204_NO_CONTENT)
-async def unblock_user(
-    other_user_id: UUID,
-    current_user: CurrentUser,
-    service: Annotated[ConnectionService, Depends(get_connection_service)],
-) -> Response:
-    try:
-        await service.unblock_user(current_user.id, other_user_id)
-    except ConnectionManagementError as error:
-        _raise_http_error(error)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("", response_model=ConnectionListResponse)

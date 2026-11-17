@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
-from backend.model.connection import Connection, UserBlock
+from backend.model.connection import Connection
 from backend.model.conversation import Conversation
 from backend.model.message import Message
 from backend.model.user import User
@@ -82,9 +82,6 @@ async def test_conversation_pair_is_unique_and_history_survives_removal_and_bloc
                     await session.flush()
 
             relationship.status = "removed"
-            session.add(UserBlock(blocker_id=first.id, blocked_id=second.id))
-            await session.flush()
-            assert await repository.is_blocked_between(first.id, second.id)
             assert await repository.get_by_id(conversation.id) is not None
             listed = await repository.list_for_user_with_unread_counts(first.id)
             assert len(listed) == 1

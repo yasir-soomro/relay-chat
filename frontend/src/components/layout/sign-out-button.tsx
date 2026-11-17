@@ -16,10 +16,12 @@ export function SignOutButton({ iconOnly = false }: { iconOnly?: boolean }) {
     try {
       await signOut();
     } catch {
+      // Auth state is cleared locally even if the logout API is unavailable.
+    } finally {
       router.replace("/login");
+      router.refresh();
+      setIsSigningOut(false);
     }
-    router.replace("/login");
-    setIsSigningOut(false);
   }
 
   return (

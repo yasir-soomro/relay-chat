@@ -40,8 +40,6 @@ class MessagePaginationError(MessageManagementError):
 class MessageConnectionRepositoryProtocol(Protocol):
     async def lock_pair_users(self, first_id: UUID, second_id: UUID) -> bool: ...
 
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool: ...
-
     async def get_connection_status(
         self, first_id: UUID, second_id: UUID
     ) -> str | None: ...
@@ -103,8 +101,6 @@ class MessageService:
         )
         if not await self._conversations.lock_pair_users(sender_id, other_id):
             raise MessageNotFoundError
-        if await self._conversations.is_blocked_between(sender_id, other_id):
-            raise MessagePermissionError
         if (
             await self._conversations.get_connection_status(sender_id, other_id)
             != "accepted"

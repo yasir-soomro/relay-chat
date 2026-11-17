@@ -1,4 +1,5 @@
 import type { UserProfile } from "@/features/users/types";
+import type { MessageRecord } from "@/features/messaging/types";
 
 export type Conversation = {
   id: string;
@@ -16,9 +17,11 @@ export type ConversationList = {
 };
 
 export type ConversationEntry = {
-  conversation: Conversation;
+  conversation: Conversation & { unread_count?: number };
   participantId: string;
   participant: UserProfile | null;
+  latestMessage?: MessageRecord | null;
+  messagePreviewError?: string;
 };
 
 export type ConversationContact = {

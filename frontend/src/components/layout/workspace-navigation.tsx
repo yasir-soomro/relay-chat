@@ -20,14 +20,11 @@ const primaryItems: WorkspaceNavigationItem[] = [
 ];
 
 const secondaryItems: WorkspaceNavigationItem[] = [
-  { href: "/app", icon: "steps", label: "Overview" },
   { href: "/notifications", icon: "notification", label: "Notifications" },
 ];
 
 function isCurrentRoute(pathname: string, href: string) {
-  return href === "/app"
-    ? pathname === href
-    : pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function NavigationLink({

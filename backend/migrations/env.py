@@ -13,7 +13,6 @@ from backend.model import (  # noqa: F401
     Conversation,
     Message,
     User,
-    UserBlock,
 )
 
 config = context.config

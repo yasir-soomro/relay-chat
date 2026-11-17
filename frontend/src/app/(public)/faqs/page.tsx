@@ -15,7 +15,7 @@ const questions = [
   {
     question: "Can I message someone before they accept my request?",
     answer:
-      "No. New messages are available only after a connection request is accepted and the connection is not blocked or removed.",
+      "No. New messages are available only after a connection request is accepted and the connection is active.",
   },
   {
     question: "What can other people see on my profile?",
@@ -28,9 +28,9 @@ const questions = [
       "A rejected request does not create a connection or unlock messaging. Relay does not promise a particular retry time.",
   },
   {
-    question: "What happens if I remove or block a connection?",
+    question: "What happens if I remove a connection?",
     answer:
-      "You can no longer send new messages while the connection is removed or blocked. Conversation history remains available to its participants. After unblocking, a new request must be accepted before messaging resumes.",
+      "You can no longer send new messages while the connection is removed. Conversation history remains available to participants. A new request must be accepted before messaging resumes.",
   },
   {
     question: "What do message statuses mean?",

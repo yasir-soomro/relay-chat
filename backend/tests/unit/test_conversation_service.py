@@ -17,7 +17,6 @@ class MemoryConversationRepository:
     def __init__(self, user_ids: set[UUID]) -> None:
         self.user_ids = user_ids
         self.connection_status: dict[tuple[UUID, UUID], str] = {}
-        self.blocks: set[tuple[UUID, UUID]] = set()
         self.conversations: dict[UUID, Conversation] = {}
         self.pairs: dict[tuple[UUID, UUID], Conversation] = {}
         self.commits = 0
@@ -29,9 +28,6 @@ class MemoryConversationRepository:
 
     async def lock_pair_users(self, first_id: UUID, second_id: UUID) -> bool:
         return first_id in self.user_ids and second_id in self.user_ids
-
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
-        return self._pair(first_id, second_id) in self.blocks
 
     async def get_connection_status(
         self,
@@ -96,18 +92,14 @@ async def test_create_or_get_is_idempotent_and_canonicalizes_pair(
 
 
 @pytest.mark.asyncio
-async def test_creation_requires_existing_accepted_unblocked_connection(
+async def test_creation_requires_existing_accepted_connection(
     conversation_setup: tuple[UUID, UUID, UUID, MemoryConversationRepository],
 ) -> None:
-    user_id, recipient_id, stranger_id, repository = conversation_setup
+    user_id, _recipient_id, stranger_id, repository = conversation_setup
     service = ConversationService(repository)
 
     with pytest.raises(ConversationPermissionError):
         await service.create_or_get(user_id, stranger_id)
-
-    repository.blocks.add(repository._pair(user_id, recipient_id))
-    with pytest.raises(ConversationNotFoundError):
-        await service.create_or_get(user_id, recipient_id)
 
     with pytest.raises(SelfConversationError):
         await service.create_or_get(user_id, user_id)
@@ -142,8 +134,8 @@ async def test_only_participants_can_retrieve_and_list_conversations(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("state", ["removed", "blocked"])
-async def test_history_remains_accessible_after_connection_removal_or_block(
+@pytest.mark.parametrize("state", ["removed"])
+async def test_history_remains_accessible_after_connection_removal(
     state: str,
     conversation_setup: tuple[UUID, UUID, UUID, MemoryConversationRepository],
 ) -> None:
@@ -155,9 +147,6 @@ async def test_history_remains_accessible_after_connection_removal_or_block(
     expected_error: type[Exception] = ConversationPermissionError
     if state == "removed":
         repository.connection_status[pair] = "removed"
-    else:
-        repository.blocks.add(pair)
-        expected_error = ConversationNotFoundError
 
     assert await service.get_conversation(conversation.id, user_id)
     assert len((await service.list_conversations(recipient_id)).items) == 1

@@ -33,7 +33,7 @@ const privacyPrinciples = [
   {
     title: "A mutual connection",
     description:
-      "Messaging is available only when both people are connected and neither has blocked the other.",
+      "Messaging is available only when both people are connected.",
   },
   {
     title: "Just two people",
@@ -43,7 +43,7 @@ const privacyPrinciples = [
   {
     title: "Your boundaries stay yours",
     description:
-      "You can remove a connection or block someone. Either stops new messages; existing history remains available to participants.",
+      "You can remove a connection. That stops new messages while existing history remains available to participants.",
   },
 ] as const;
 
@@ -56,7 +56,7 @@ const questions = [
   {
     question: "Can I message someone before they accept my request?",
     answer:
-      "No. New messages are available only after a connection request is accepted and the connection is not blocked or removed.",
+      "No. New messages are available only after a connection request is accepted and the connection is active.",
   },
   {
     question: "What can other people see on my profile?",
@@ -69,9 +69,9 @@ const questions = [
       "A rejected request does not create a connection or unlock messaging. Relay does not promise a particular retry time.",
   },
   {
-    question: "What happens if I remove or block a connection?",
+    question: "What happens if I remove a connection?",
     answer:
-      "You can no longer send new messages while the connection is removed or blocked. Conversation history remains available to its participants. After unblocking, a new request must be accepted before messaging resumes.",
+      "You can no longer send new messages while the connection is removed. Conversation history remains available to participants. A new request must be accepted before messaging resumes.",
   },
   {
     question: "What do message statuses mean?",

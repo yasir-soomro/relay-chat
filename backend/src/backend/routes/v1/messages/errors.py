@@ -26,7 +26,7 @@ def raise_message_http_error(error: MessageManagementError) -> NoReturn:
     if isinstance(error, MessagePermissionError):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="An accepted, unblocked connection is required to send messages",
+            detail="An accepted connection is required to send messages",
         ) from None
     if isinstance(error, MessageAuthorPermissionError):
         raise HTTPException(

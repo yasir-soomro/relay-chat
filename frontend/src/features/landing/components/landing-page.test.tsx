@@ -32,7 +32,7 @@ describe("LandingPage", () => {
       screen.getByText(/username, display name, and bio/),
     ).toBeTruthy();
     expect(
-      screen.getByText(/Conversation history remains available to its participants/),
+      screen.getByText(/Conversation history remains available to participants/),
     ).toBeTruthy();
     expect(
       screen.getByText(/indicate the status Relay has confirmed/),

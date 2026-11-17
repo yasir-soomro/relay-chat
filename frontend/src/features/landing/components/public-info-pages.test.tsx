@@ -38,7 +38,7 @@ describe("public information pages", () => {
     expect(details?.open).toBe(true);
     expect(
       screen.getByText(
-        "No. New messages are available only after a connection request is accepted and the connection is not blocked or removed.",
+        "No. New messages are available only after a connection request is accepted and the connection is active.",
       ),
     ).toBeTruthy();
   });

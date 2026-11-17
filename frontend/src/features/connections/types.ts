@@ -21,14 +21,8 @@ export type ConnectionPage = {
   items: ConnectionRecord[];
 };
 
-export type BlockResponse = {
-  blocked_user_id: string;
-  created_at: string;
-};
-
 export type ConnectionViewState =
   | { status: "none" }
-  | { status: "blocked" }
   | { status: "rejected" }
   | { status: "pending"; direction: "incoming" | "outgoing"; connectionId: string }
   | { status: "accepted"; connectionId: string };

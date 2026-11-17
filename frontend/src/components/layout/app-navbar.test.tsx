@@ -3,14 +3,15 @@ import type { AnchorHTMLAttributes } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppNavbar } from "@/components/layout/app-navbar";
 
-const { replace, signOut } = vi.hoisted(() => ({
+const { refresh, replace, signOut } = vi.hoisted(() => ({
+  refresh: vi.fn(),
   replace: vi.fn(),
   signOut: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/discover",
-  useRouter: () => ({ replace }),
+  useRouter: () => ({ refresh, replace }),
 }));
 
 vi.mock("next/link", () => ({
@@ -55,6 +56,7 @@ vi.mock("@/features/notifications/providers/notifications-provider", () => ({
 
 describe("AppNavbar", () => {
   beforeEach(() => {
+    refresh.mockReset();
     replace.mockReset();
     signOut.mockReset().mockResolvedValue(undefined);
   });
@@ -76,7 +78,6 @@ describe("AppNavbar", () => {
         .getAllByRole("link")
         .map((link) => link.textContent?.trim()),
     ).toEqual([
-      "Overview",
       "Conversations",
       "Notifications",
       "Discover",
@@ -85,13 +86,14 @@ describe("AppNavbar", () => {
     ]);
     expect(within(navigation).getByRole("link", { name: "Discover" })
       .getAttribute("aria-current")).toBe("page");
-    expect(navigation.querySelectorAll("svg")).toHaveLength(6);
+    expect(navigation.querySelectorAll("svg")).toHaveLength(5);
 
     fireEvent.keyDown(document, { key: "Escape" });
     fireEvent.click(signOutButton);
     await waitFor(() => {
       expect(signOut).toHaveBeenCalledOnce();
       expect(replace).toHaveBeenCalledWith("/login");
+      expect(refresh).toHaveBeenCalledOnce();
     });
   });
 });

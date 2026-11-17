@@ -5,13 +5,18 @@ import type { UserProfile } from "@/features/users/types";
 type ProfileCardProps = {
   profile: UserProfile;
   email?: string;
+  className?: string;
 };
 
-export function ProfileCard({ profile, email }: ProfileCardProps) {
+export function ProfileCard({
+  profile,
+  email,
+  className = "",
+}: ProfileCardProps) {
   return (
     <section
       aria-label={`${profile.display_name}'s profile`}
-      className={`${surfaceCardClassName} p-6 sm:p-8`}
+      className={`${surfaceCardClassName} ${className} p-6 sm:p-8`.trim()}
     >
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
         <ProfileAvatar

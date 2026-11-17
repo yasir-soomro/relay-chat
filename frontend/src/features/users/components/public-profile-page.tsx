@@ -14,7 +14,7 @@ type PublicProfilePageProps = {
 };
 
 export function PublicProfilePage({ userId }: PublicProfilePageProps) {
-  const { authenticatedFetch } = useAuth();
+  const { account, authenticatedFetch } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -52,37 +52,59 @@ export function PublicProfilePage({ userId }: PublicProfilePageProps) {
   const isCurrentProfileLoaded = loadedUserId === userId;
 
   return (
-    <section aria-labelledby="public-profile-heading" className="mx-auto max-w-3xl">
-      <p className="text-sm font-medium text-primary">Relay member</p>
-      <h1
-        className="mt-2 text-3xl font-medium tracking-[-0.055em] text-ink sm:text-4xl"
-        id="public-profile-heading"
-      >
-        Profile
-      </h1>
+    <section
+      aria-labelledby="public-profile-heading"
+      className="public-profile-page profile-page mx-auto w-full max-w-5xl"
+    >
+      <header className="public-profile-heading">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
+          Relay member
+        </p>
+        <h1
+          className="mt-1 text-[1.7rem] font-semibold leading-tight tracking-[-0.04em] text-ink sm:text-[2rem]"
+          id="public-profile-heading"
+        >
+          Public profile
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+          A little more about the people who make Relay feel connected.
+        </p>
+      </header>
+
       {isLoading || !isCurrentProfileLoaded ? (
         <div
           aria-label="Loading profile"
-          className="mt-8 h-64 animate-pulse rounded-3xl border border-line bg-surface"
+          className="public-profile-layout mt-6"
           role="status"
         >
           <span className="sr-only">Loading profile…</span>
+          <div
+            aria-hidden="true"
+            className="public-profile-skeleton public-profile-skeleton-main"
+          />
+          <div
+            aria-hidden="true"
+            className="public-profile-skeleton public-profile-skeleton-aside"
+          />
         </div>
       ) : error ? (
-        <div className="mt-8 rounded-3xl border border-line bg-surface p-6 sm:p-8">
+        <div className="public-profile-message mt-6">
+          <div className="public-profile-message-icon" aria-hidden="true">
+            !
+          </div>
           <p className="text-sm leading-6 text-danger" role="alert">
             {error}
           </p>
           {error === "This profile could not be found." ? (
             <Link
-              className="mt-4 inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
-              href="/app"
+              className="public-profile-link mt-4 inline-flex min-h-10 items-center rounded-lg px-3 text-xs font-semibold text-primary"
+              href="/conversations"
             >
               Return to your workspace
             </Link>
           ) : (
             <Button
-              className="mt-4"
+              className="mt-4 min-h-9 rounded-lg px-4 py-2 text-xs"
               onClick={() => {
                 setIsLoading(true);
                 setError("");
@@ -96,15 +118,73 @@ export function PublicProfilePage({ userId }: PublicProfilePageProps) {
           )}
         </div>
       ) : isCurrentProfileLoaded && profile ? (
-        <div className="mt-8 space-y-5">
-          <ProfileCard profile={profile} />
-          <UserConnectionActions
-            displayName={profile.display_name}
-            userId={profile.id}
+        <div className="public-profile-layout mt-6">
+          <ProfileCard
+            className="public-profile-card"
+            profile={profile}
           />
+          <aside
+            aria-label={`Connect with ${profile.display_name}`}
+            className="public-profile-connect-card"
+          >
+            <div className="public-profile-connect-icon" aria-hidden="true">
+              <svg fill="none" viewBox="0 0 24 24">
+                <path
+                  d="M16 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H6.4A3.4 3.4 0 0 0 3 18.4V20m16-9a3 3 0 0 1 2 2.8V15m-4-12.5a3 3 0 0 1 0 5.8M9.5 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.6"
+                />
+              </svg>
+            </div>
+            {account?.id === profile.id ? (
+              <>
+                <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
+                  Your public profile
+                </p>
+                <h2 className="mt-2 text-base font-semibold leading-6 text-ink">
+                  This is how other Relay members see you.
+                </h2>
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  Keep your public profile up to date from your workspace.
+                </p>
+                <Link
+                  className="public-profile-link mt-5 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-xs font-semibold text-primary-foreground"
+                  href="/app/profile"
+                >
+                  Edit your profile
+                </Link>
+              </>
+            ) : (
+              <>
+                <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
+                  Build a connection
+                </p>
+                <h2 className="mt-2 text-base font-semibold leading-6 text-ink">
+                  Say hello to {profile.display_name}.
+                </h2>
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  Good conversations start with a simple introduction.
+                </p>
+                <div className="public-profile-actions mt-5">
+                  <UserConnectionActions
+                    displayName={profile.display_name}
+                    userId={profile.id}
+                  />
+                </div>
+                <Link
+                  className="public-profile-link mt-4 inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-muted"
+                  href="/conversations"
+                >
+                  Back to your workspace
+                </Link>
+              </>
+            )}
+          </aside>
         </div>
       ) : (
-        <p className="mt-8 rounded-3xl border border-line bg-surface p-6 text-sm text-muted">
+        <p className="public-profile-message mt-6 text-sm text-muted">
           This profile is not available.
         </p>
       )}

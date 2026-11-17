@@ -6,27 +6,6 @@ import { MessagingProvider } from "@/features/messaging/providers/messaging-prov
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import "./globals.css";
 
-const themeBootstrap = `(() => {
-  let preference = "system";
-  try {
-    const savedTheme = window.localStorage.getItem("relay-theme");
-    preference =
-      savedTheme === "light" || savedTheme === "dark" || savedTheme === "system"
-        ? savedTheme
-        : "system";
-  } catch {
-    preference = "system";
-  }
-  const theme =
-    preference === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light"
-      : preference;
-  document.documentElement.dataset.themePreference = preference;
-  document.documentElement.dataset.theme = theme;
-})();`;
-
 export const metadata: Metadata = {
   title: "Relay — conversations, with room to breathe",
   description:
@@ -44,12 +23,11 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
     >
-      <Script
-        dangerouslySetInnerHTML={{ __html: themeBootstrap }}
-        id="relay-theme-bootstrap"
-        strategy="beforeInteractive"
-      />
       <body>
+        <Script
+          src="/theme-bootstrap.js"
+          strategy="beforeInteractive"
+        />
         <ThemeProvider>
           <AuthProvider>
             <MessagingProvider>{children}</MessagingProvider>

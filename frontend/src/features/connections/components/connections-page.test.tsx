@@ -67,7 +67,7 @@ describe("ConnectionsPage", () => {
 
     expect(outgoingTab.getAttribute("aria-selected")).toBe("true");
     expect(document.activeElement).toBe(outgoingTab);
-    expect(screen.getByRole("heading", { name: "Requests you’ve sent" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Connection requests" })).toBeTruthy();
     expect(await screen.findByText("No sent requests")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("tab", { name: /Connections/ }));

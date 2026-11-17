@@ -1,4 +1,4 @@
-import { ConversationDetailPage } from "@/features/conversations/components/conversation-detail-page";
+import { ConversationsPage } from "@/features/conversations/components/conversations-page";
 
 export default async function ConversationRoute({
   params,
@@ -6,5 +6,5 @@ export default async function ConversationRoute({
   params: Promise<{ conversationId: string }>;
 }) {
   const { conversationId } = await params;
-  return <ConversationDetailPage conversationId={conversationId} />;
+  return <ConversationsPage selectedConversationId={conversationId} />;
 }
