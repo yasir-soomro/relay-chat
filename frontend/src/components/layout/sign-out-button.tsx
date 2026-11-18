@@ -18,7 +18,7 @@ export function SignOutButton({ iconOnly = false }: { iconOnly?: boolean }) {
     } catch {
       // Auth state is cleared locally even if the logout API is unavailable.
     } finally {
-      router.replace("/login");
+      router.replace("/");
       router.refresh();
       setIsSigningOut(false);
     }
@@ -30,7 +30,7 @@ export function SignOutButton({ iconOnly = false }: { iconOnly?: boolean }) {
       className={
         iconOnly
           ? "size-11 min-h-11 shrink-0 px-0 disabled:cursor-wait"
-          : "px-4 font-medium disabled:cursor-wait"
+          : "min-h-10 w-full justify-start rounded-lg px-3 py-2 text-sm font-medium disabled:cursor-wait"
       }
       disabled={isSigningOut}
       loading={isSigningOut}

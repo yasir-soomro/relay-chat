@@ -172,7 +172,7 @@ export function MobileNavigation({
         aria-label={
           isOpen ? "Close navigation menu" : "Open navigation menu"
         }
-        className="mobile-navigation-toggle inline-grid size-11 shrink-0 place-items-center rounded-xl border border-line bg-surface text-ink shadow-card transition-[background-color,box-shadow,transform] duration-150 hover:bg-soft active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="mobile-navigation-toggle inline-grid size-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-ink shadow-card transition-[background-color,box-shadow,transform] duration-150 hover:bg-soft active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         onClick={() => (isOpen ? closeMenu() : openMenu())}
         ref={menuButtonRef}
         type="button"

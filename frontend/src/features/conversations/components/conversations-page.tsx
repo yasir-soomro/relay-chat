@@ -54,10 +54,10 @@ export function ConversationsPage({
           className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-ink sm:text-3xl"
           id="messages-heading"
         >
-          Your conversations
+          SpaceHub
         </h1>
         <p className="mt-1 text-xs leading-5 text-muted sm:text-sm">
-          A private space for you and your connections.
+          Your recent conversations and shortcuts to the rest of your workspace.
         </p>
       </header>
 

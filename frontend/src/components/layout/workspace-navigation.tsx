@@ -15,7 +15,7 @@ type WorkspaceNavigationItem = {
 const primaryItems: WorkspaceNavigationItem[] = [
   { href: "/discover", icon: "discover", label: "Discover people" },
   { href: "/app/connections", icon: "request", label: "Requests" },
-  { href: "/conversations", icon: "messages", label: "Messages" },
+  { href: "/conversations", icon: "spacehub", label: "SpaceHub" },
   { href: "/app/profile", icon: "profile", label: "My profile" },
 ];
 
@@ -85,7 +85,7 @@ export function WorkspaceNavigation() {
               badge={
                 item.label === "Requests"
                   ? pendingRequestCount
-                  : item.label === "Messages"
+                  : item.href === "/conversations"
                     ? unreadCount
                     : undefined
               }

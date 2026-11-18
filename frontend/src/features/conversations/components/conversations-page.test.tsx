@@ -106,6 +106,7 @@ describe("ConversationsPage", () => {
 
     renderInbox();
 
+    expect(screen.getByRole("heading", { name: "SpaceHub" })).toBeTruthy();
     expect(await screen.findByText("Relay Friend")).toBeTruthy();
     const inboxPanel = within(screen.getByLabelText("Conversation inbox"));
     expect(inboxPanel.getByText("@relay_friend")).toBeTruthy();

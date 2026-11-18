@@ -9,7 +9,7 @@ export const siteNavigation = [
 ] as const satisfies readonly SiteNavigationItem[];
 
 export const appNavigation = [
-  { href: "/conversations", icon: "messages", label: "Conversations" },
+  { href: "/conversations", icon: "spacehub", label: "SpaceHub" },
   { href: "/notifications", icon: "notification", label: "Notifications" },
   { href: "/discover", icon: "discover", label: "Discover" },
   { href: "/app/connections", icon: "request", label: "Connections" },

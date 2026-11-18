@@ -15,6 +15,89 @@
 
 html {
   scroll-padding-top: 6rem;
+  overflow-x: clip;
+}
+
+main,
+main > *,
+main section,
+main article {
+  min-width: 0;
+}
+
+img,
+video,
+canvas {
+  max-width: 100%;
+}
+
+.auth-state-navbar,
+.landing-public-nav {
+  min-width: 0;
+  isolation: isolate;
+}
+
+.landing-public-nav a,
+.landing-public-nav button {
+  white-space: nowrap;
+}
+
+.landing-public-nav > div {
+  min-width: 0;
+}
+
+@media (min-width: 80rem) {
+  .landing-public-nav nav a {
+    padding-inline: 0.75rem;
+  }
+}
+
+
+.nav-profile-menu > summary {
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-profile-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.nav-profile-menu[open] > div {
+  transform-origin: top right;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .auth-state-navbar {
+    animation: navbar-state-enter 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .nav-profile-menu[open] > div {
+    animation: profile-menu-enter 150ms ease-out both;
+  }
+}
+
+@keyframes navbar-state-enter {
+  from {
+    opacity: 0.7;
+    transform: translateY(-0.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes profile-menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 body {
@@ -93,6 +176,16 @@ dialog[open] {
 
   dialog[open] {
     animation: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .site-brand-frame {
+    width: 6.5rem;
+  }
+
+  .mobile-navigation-panel {
+    width: min(22rem, 100vw);
   }
 }
 
@@ -192,6 +285,110 @@ dialog[open] {
   transform: translateY(-3px);
   border-color: var(--relay-primary);
   box-shadow: var(--shadow-card);
+}
+
+.how-it-works-page {
+  overflow: clip;
+}
+
+.how-demo-visual {
+  min-width: 0;
+  perspective: 1000px;
+}
+
+.how-demo-frame {
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+.how-demo-image {
+  transition: transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.how-demo-shade {
+  position: absolute;
+  z-index: 1;
+  inset: 45% 0 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgb(16 28 23 / 22%));
+}
+
+.how-demo-caption {
+  z-index: 2;
+}
+
+.how-step-card {
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .how-demo-visual {
+    animation: how-demo-enter 720ms 180ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .how-demo-caption {
+    animation: how-caption-enter 500ms 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .landing-reveal-visible .how-step-card {
+    animation: how-step-enter 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .landing-reveal-visible .how-step-card:nth-child(2) {
+    animation-delay: 90ms;
+  }
+
+  .landing-reveal-visible .how-step-card:nth-child(3) {
+    animation-delay: 180ms;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (hover: hover) {
+  .how-demo-frame:hover .how-demo-image {
+    transform: scale(1.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .how-it-works-page .landing-card:hover {
+    transform: none;
+  }
+}
+
+@keyframes how-demo-enter {
+  from {
+    opacity: 0;
+    transform: translateY(1rem) rotateX(2deg) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateX(0) scale(1);
+  }
+}
+
+@keyframes how-caption-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes how-step-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes type-caret-blink {
@@ -967,8 +1164,23 @@ dialog[open] {
 
 .mobile-navigation-links a {
   display: flex;
-  min-height: 3rem;
+  min-height: 2.625rem;
   align-items: center;
+}
+
+.mobile-navigation-panel :focus-visible,
+.mobile-navigation-toggle:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.mobile-navigation-actions button {
+  min-height: 2.5rem;
+}
+
+.mobile-navigation-actions button[aria-label^="Theme preference"] svg {
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 .mobile-navigation-links a[aria-current="page"] {

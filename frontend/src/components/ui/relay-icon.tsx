@@ -4,6 +4,7 @@ export type RelayIconName =
   | "steps"
   | "why-relay"
   | "faq"
+  | "spacehub"
   | "discover"
   | "request"
   | "messages"
@@ -34,6 +35,16 @@ const iconContent: Record<RelayIconName, ReactNode> = {
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M9.8 9a2.3 2.3 0 1 1 3.9 1.6c-1 .9-1.7 1.1-1.7 2.6M12 16.8h.01" />
+    </>
+  ),
+  spacehub: (
+    <>
+      <circle cx="12" cy="12" r="2.3" />
+      <circle cx="5" cy="6" r="1.5" />
+      <circle cx="19" cy="6" r="1.5" />
+      <circle cx="5" cy="18" r="1.5" />
+      <circle cx="19" cy="18" r="1.5" />
+      <path d="m10.3 10.6-4-3.3m7.4 3.3 4-3.3m-7.4 6.1-4 3.3m7.4-3.3 4 3.3" />
     </>
   ),
   discover: (

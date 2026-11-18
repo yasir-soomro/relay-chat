@@ -9,11 +9,12 @@ describe("public information pages", () => {
     render(<HowItWorksPage />);
 
     expect(
-      screen.getByRole("heading", { name: "A good conversation starts simply." }),
+      screen.getByRole("heading", { name: "Make a connection. Start a conversation." }),
     ).toBeTruthy();
-    expect(screen.getByText("Discover")).toBeTruthy();
-    expect(screen.getByText("Connect")).toBeTruthy();
-    expect(screen.getByText("Say hello")).toBeTruthy();
+    expect(screen.getByText("Discover someone")).toBeTruthy();
+    expect(screen.getByText("Connect by choice")).toBeTruthy();
+    expect(screen.getByText("Start a conversation")).toBeTruthy();
+    expect(screen.getByRole("img", { name: /Relay Chat demo showing a private conversation/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /create an account/i })).toBeTruthy();
   });
 
