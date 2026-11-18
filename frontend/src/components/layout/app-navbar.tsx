@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
 import { PageContainer } from "@/components/layout/page-container";
