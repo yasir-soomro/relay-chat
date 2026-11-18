@@ -3,14 +3,15 @@ import type { AnchorHTMLAttributes } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AppNavbar } from "@/components/layout/app-navbar";
 
-const { replace, signOut } = vi.hoisted(() => ({
+const { refresh, replace, signOut } = vi.hoisted(() => ({
+  refresh: vi.fn(),
   replace: vi.fn(),
   signOut: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/discover",
-  useRouter: () => ({ replace }),
+  useRouter: () => ({ refresh, replace }),
 }));
 
 vi.mock("next/link", () => ({
@@ -46,7 +47,7 @@ vi.mock("@/components/ui/theme-toggle", () => ({
 }));
 
 vi.mock("@/features/auth/providers/auth-provider", () => ({
-  useAuth: () => ({ signOut }),
+  useAuth: () => ({ signOut, account: { display_name: "Relay User" } }),
 }));
 
 vi.mock("@/features/notifications/providers/notifications-provider", () => ({
@@ -55,6 +56,7 @@ vi.mock("@/features/notifications/providers/notifications-provider", () => ({
 
 describe("AppNavbar", () => {
   beforeEach(() => {
+    refresh.mockReset();
     replace.mockReset();
     signOut.mockReset().mockResolvedValue(undefined);
   });
@@ -62,10 +64,10 @@ describe("AppNavbar", () => {
   it("shows app routes once with icons and preserves sign-out behavior", async () => {
     render(<AppNavbar />);
 
-    const signOutButton = screen.getByRole("button", { name: "Sign out" });
     const menuButton = screen.getByRole("button", {
       name: "Open navigation menu",
     });
+    expect(screen.getByRole("img", { name: "Relay User avatar" })).toBeTruthy();
     fireEvent.click(menuButton);
 
     const navigation = screen.getByRole("navigation", {
@@ -76,22 +78,25 @@ describe("AppNavbar", () => {
         .getAllByRole("link")
         .map((link) => link.textContent?.trim()),
     ).toEqual([
-      "Overview",
-      "Conversations",
+      "SpaceHub",
       "Notifications",
       "Discover",
       "Connections",
-      "Profile",
     ]);
     expect(within(navigation).getByRole("link", { name: "Discover" })
       .getAttribute("aria-current")).toBe("page");
-    expect(navigation.querySelectorAll("svg")).toHaveLength(6);
+    expect(navigation.querySelectorAll("svg")).toHaveLength(4);
+    const drawer = within(screen.getByRole("dialog", { name: "Application navigation" }));
+    expect(drawer.getByRole("link", { name: "My Profile" }).getAttribute("href")).toBe("/app/profile");
+    expect(drawer.getByRole("button", { name: "Theme preference" })).toBeTruthy();
 
     fireEvent.keyDown(document, { key: "Escape" });
-    fireEvent.click(signOutButton);
+    fireEvent.click(menuButton);
+    fireEvent.click(within(screen.getByRole("dialog", { name: "Application navigation" })).getByRole("button", { name: "Sign out" }));
     await waitFor(() => {
       expect(signOut).toHaveBeenCalledOnce();
-      expect(replace).toHaveBeenCalledWith("/login");
+      expect(replace).toHaveBeenCalledWith("/");
+      expect(refresh).toHaveBeenCalledOnce();
     });
   });
 });

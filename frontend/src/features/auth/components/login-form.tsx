@@ -24,7 +24,7 @@ export function LoginForm() {
 
   useEffect(() => {
     if (status === "authenticated" && !loginRequested.current) {
-      router.replace("/app");
+      router.replace("/conversations");
     }
   }, [router, status]);
 
@@ -72,7 +72,7 @@ export function LoginForm() {
         requestedPath?.startsWith("/") &&
         !requestedPath.startsWith("//")
           ? `${redirectTarget.pathname}${redirectTarget.search}${redirectTarget.hash}`
-          : "/app";
+          : "/conversations";
       router.replace(nextPath);
     } catch (error) {
       if (error instanceof AuthenticationRequestError) {

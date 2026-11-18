@@ -37,7 +37,6 @@ def get_user_service(
 ) -> UserService:
     return UserService(
         UserRepository(session),
-        ConnectionRepository(session),
     )
 
 

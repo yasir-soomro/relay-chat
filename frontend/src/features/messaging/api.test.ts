@@ -104,12 +104,12 @@ describe("message API", () => {
     ]);
   });
 
-  it("surfaces the backend's blocking/connection send restriction", async () => {
+  it("surfaces the backend's connection send restriction", async () => {
     const authenticatedFetch = vi.fn().mockResolvedValue(
       jsonResponse(
         {
           detail:
-            "An accepted, unblocked connection is required to send messages",
+            "An accepted connection is required to send messages",
         },
         403,
       ),
@@ -120,7 +120,7 @@ describe("message API", () => {
       name: "MessageRequestError",
       status: 403,
       message:
-        "New messages are unavailable because this is no longer an accepted, unblocked connection.",
+        "New messages are unavailable because this is no longer an accepted connection.",
     } satisfies Partial<MessageRequestError>);
   });
 

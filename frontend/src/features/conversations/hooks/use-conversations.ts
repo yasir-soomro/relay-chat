@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getPublicProfile } from "@/features/users/api";
 import { listConversations } from "@/features/conversations/api";
+import { listMessages } from "@/features/messaging/api";
 import type {
   Conversation,
   ConversationEntry,
@@ -43,19 +44,43 @@ export function useConversations(
         const results = await Promise.all(
           items.map(async (conversation) => {
             const participantId = otherParticipantId(conversation, currentUserId);
-            try {
-              const participant = await getPublicProfile(
+            const [participantResult, messageResult] = await Promise.allSettled([
+              getPublicProfile(
                 authenticatedFetch,
                 participantId,
                 controller.signal,
-              );
-              return { conversation, participantId, participant };
-            } catch (cause) {
-              if (controller.signal.aborted) {
-                throw cause;
-              }
-              return { conversation, participantId, participant: null };
+              ),
+              listMessages(
+                authenticatedFetch,
+                conversation.id,
+                { limit: 1 },
+                controller.signal,
+              ),
+            ]);
+            if (controller.signal.aborted) {
+              throw new DOMException("Request aborted", "AbortError");
             }
+            return {
+              conversation,
+              participantId,
+              participant:
+                participantResult.status === "fulfilled"
+                  ? participantResult.value
+                  : null,
+              latestMessage:
+                messageResult.status === "fulfilled"
+                  ? messageResult.value.items[
+                      messageResult.value.items.length - 1
+                    ] ?? null
+                  : null,
+              messagePreviewError:
+                messageResult.status === "rejected" &&
+                messageResult.reason instanceof Error
+                  ? messageResult.reason.message
+                  : messageResult.status === "rejected"
+                    ? "Message preview is unavailable."
+                    : "",
+            };
           }),
         );
         if (!controller.signal.aborted) {

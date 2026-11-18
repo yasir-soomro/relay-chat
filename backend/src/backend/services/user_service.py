@@ -25,10 +25,6 @@ class UserAlreadyExistsError(Exception):
         super().__init__(f"User {field} already exists")
 
 
-class ProfileBlockChecker(Protocol):
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool: ...
-
-
 class UserProfileRepositoryProtocol(Protocol):
     async def get_by_id(self, user_id: UUID) -> User | None: ...
 
@@ -61,18 +57,14 @@ class UserService:
     def __init__(
         self,
         repository: UserProfileRepositoryProtocol,
-        block_checker: ProfileBlockChecker,
     ) -> None:
         self._repository = repository
-        self._block_checker = block_checker
 
     async def get_public_profile(
         self,
         user_id: UUID,
         requester_id: UUID,
     ) -> UserPublicProfile:
-        if await self._block_checker.is_blocked_between(user_id, requester_id):
-            raise UserNotFoundError("User not found")
         user = await self._repository.get_by_id(user_id)
         if user is None:
             raise UserNotFoundError("User not found")

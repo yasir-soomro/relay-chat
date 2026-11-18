@@ -11,10 +11,14 @@ import { useMessages } from "@/features/messaging/hooks/use-messages";
 
 type ConversationDetailPageProps = {
   conversationId: string;
+  embedded?: boolean;
+  isAcceptedConnection?: boolean;
 };
 
 export function ConversationDetailPage({
   conversationId,
+  embedded = false,
+  isAcceptedConnection,
 }: ConversationDetailPageProps) {
   const { account, authenticatedFetch } = useAuth();
   const currentUserId = account?.id ?? "";
@@ -34,10 +38,18 @@ export function ConversationDetailPage({
     return (
       <section
         aria-label="Opening conversation"
-        className="mx-auto max-w-5xl"
+        className={
+          embedded
+            ? "messages-detail-loading"
+            : "mx-auto max-w-5xl"
+        }
         role="status"
       >
-        <div className="h-[min(70vh,48rem)] min-h-80 animate-pulse rounded-card border border-line bg-surface">
+        <div
+          className={`h-[min(70vh,48rem)] min-h-80 animate-pulse rounded-card bg-surface ${
+            embedded ? "messages-detail-loading-panel" : "border border-line"
+          }`}
+        >
           <span className="sr-only">Opening conversation…</span>
         </div>
       </section>
@@ -48,9 +60,17 @@ export function ConversationDetailPage({
     return (
       <section
         aria-labelledby="conversation-error-heading"
-        className="mx-auto max-w-4xl"
+        className={
+          embedded
+            ? "messages-detail-error"
+            : "mx-auto max-w-4xl"
+        }
       >
-        <div className="rounded-card border border-line bg-surface p-6 sm:p-8">
+        <div
+          className={`rounded-card bg-surface p-6 sm:p-8 ${
+            embedded ? "messages-detail-error-panel" : "border border-line"
+          }`}
+        >
           <h1
             className="text-xl font-semibold text-ink"
             id="conversation-error-heading"
@@ -80,11 +100,19 @@ export function ConversationDetailPage({
     conversation.conversation.user_low_id === currentUserId
       ? conversation.conversation.user_high_id
       : conversation.conversation.user_low_id;
+  const liveUpdateState =
+    messages.connectionState === "connected"
+      ? "active"
+      : messages.connectionState;
 
   return (
     <section
       aria-label={`Conversation with ${conversation.participant?.display_name ?? "Relay member"}`}
-      className="mx-auto flex h-[calc(100dvh-12rem)] min-h-[28rem] max-h-[56rem] max-w-5xl flex-col overflow-hidden rounded-card border border-line bg-canvas shadow-card md:h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-6rem)]"
+      className={
+        embedded
+          ? "messages-detail-embedded flex min-h-0 min-w-0 flex-1 flex-col"
+          : "mx-auto flex h-[calc(100dvh-12rem)] min-h-[28rem] max-h-[56rem] max-w-5xl flex-col overflow-hidden rounded-card border border-line bg-canvas shadow-card md:h-[calc(100dvh-9rem)] lg:h-[calc(100dvh-6rem)]"
+      }
     >
       <ChatHeader
         participant={conversation.participant}
@@ -92,6 +120,18 @@ export function ConversationDetailPage({
         connectionState={messages.connectionState}
         onReconnect={messages.reconnect}
       />
+      <div
+        className={`messages-connection-banner ${messages.connectionState === "connected" ? "messages-connection-live" : ""}`}
+        role="status"
+      >
+        <span aria-hidden="true">●</span>
+        <span>
+          {isAcceptedConnection
+            ? `You're connected with ${conversation.participant?.display_name ?? "this member"}. `
+            : ""}
+          Live updates are {liveUpdateState} for this conversation.
+        </span>
+      </div>
 
       {messages.isLoading ? (
         <div

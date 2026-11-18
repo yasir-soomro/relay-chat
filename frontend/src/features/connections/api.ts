@@ -1,6 +1,5 @@
 import type { AuthenticatedRequest } from "@/features/users/types";
 import type {
-  BlockResponse,
   ConnectionPage,
   ConnectionRecord,
 } from "@/features/connections/types";
@@ -68,20 +67,6 @@ function parseConnectionPage(value: unknown): ConnectionPage {
   return { items: value.items.map(parseConnection) };
 }
 
-function parseBlock(value: unknown): BlockResponse {
-  if (
-    !isRecord(value) ||
-    typeof value.blocked_user_id !== "string" ||
-    typeof value.created_at !== "string"
-  ) {
-    throw new ConnectionRequestError(
-      502,
-      "Relay returned an unexpected block response. Please try again.",
-    );
-  }
-  return { blocked_user_id: value.blocked_user_id, created_at: value.created_at };
-}
-
 async function request(
   authenticatedFetch: AuthenticatedRequest,
   path: string,
@@ -110,9 +95,7 @@ async function request(
     if (response.status === 404) {
       throw new ConnectionRequestError(
         response.status,
-        init.method === "DELETE" && path.endsWith("/block")
-          ? "This unblock target is no longer available."
-          : "This member or connection is no longer available.",
+        "This member or connection is no longer available.",
       );
     }
     if (response.status === 409) {
@@ -254,29 +237,5 @@ export async function removeConnection(
       `/connections/${encodeURIComponent(otherUserId)}`,
       { method: "DELETE" },
     ),
-  );
-}
-
-export async function blockUser(
-  authenticatedFetch: AuthenticatedRequest,
-  otherUserId: string,
-): Promise<BlockResponse> {
-  return parseBlock(
-    await request(
-      authenticatedFetch,
-      `/connections/${encodeURIComponent(otherUserId)}/block`,
-      { method: "POST" },
-    ),
-  );
-}
-
-export async function unblockUser(
-  authenticatedFetch: AuthenticatedRequest,
-  otherUserId: string,
-): Promise<void> {
-  await request(
-    authenticatedFetch,
-    `/connections/${encodeURIComponent(otherUserId)}/block`,
-    { method: "DELETE" },
   );
 }

@@ -9,23 +9,21 @@ type UserConnectionActionsProps = {
   userId: string;
   displayName: string;
   compact?: boolean;
-  showBlock?: boolean;
   allowCancelRequest?: boolean;
+  showStatusLabel?: boolean;
 };
 
 export function UserConnectionActions({
   userId,
   displayName,
   compact = false,
-  showBlock = true,
   allowCancelRequest = false,
+  showStatusLabel = true,
 }: UserConnectionActionsProps) {
   const { account } = useAuth();
   const connections = useConnections();
   const [actionError, setActionError] = useState("");
-  const [confirming, setConfirming] = useState<"remove" | "block" | null>(
-    null,
-  );
+  const [confirming, setConfirming] = useState<"remove" | null>(null);
   const [isActing, setIsActing] = useState(false);
   const state = connections.stateFor(userId);
 
@@ -76,7 +74,7 @@ export function UserConnectionActions({
   }
 
   const buttonClass = compact
-    ? "min-h-10 min-w-0 max-w-full whitespace-normal break-words px-3 py-2 text-xs leading-4"
+    ? "min-h-9 min-w-0 max-w-full whitespace-normal break-words rounded-lg px-3 py-2 text-xs leading-4"
     : "";
 
   return (
@@ -91,13 +89,11 @@ export function UserConnectionActions({
 
       {confirming ? (
         <div
-          aria-label={`Confirm ${confirming === "block" ? "block" : "removal"}`}
+          aria-label="Confirm removal"
           className="rounded-xl border border-line bg-soft p-4"
         >
           <p className="break-words text-sm leading-6 text-ink">
-            {confirming === "block"
-              ? `Block ${displayName}? This also ends any current connection.`
-              : `Remove your connection with ${displayName}?`}
+            {`Remove your connection with ${displayName}?`}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button
@@ -105,9 +101,7 @@ export function UserConnectionActions({
               disabled={isActing}
               onClick={() =>
                 void perform(() =>
-                  confirming === "block"
-                    ? connections.block(userId, displayName)
-                    : connections.remove(userId),
+                  connections.remove(userId),
                 )
               }
               type="button"
@@ -126,37 +120,14 @@ export function UserConnectionActions({
             </Button>
           </div>
         </div>
-      ) : state.status === "blocked" ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm font-medium text-muted">Blocked</p>
-          <Button
-            className={buttonClass}
-            disabled={isActing}
-            onClick={() => void perform(() => connections.unblock(userId))}
-            type="button"
-            variant="secondary"
-          >
-            {isActing ? "Unblocking…" : "Unblock"}
-          </Button>
-        </div>
       ) : state.status === "rejected" ? (
         <p className="text-sm font-medium text-muted">Request rejected</p>
       ) : state.status === "pending" && state.direction === "incoming" ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted">
-            {showBlock ? "Pending request" : "Pending"}
-          </p>
+        <div className={showStatusLabel ? "space-y-2" : ""}>
+          {showStatusLabel ? (
+            <p className="text-sm font-medium text-muted">Pending</p>
+          ) : null}
           <div className="flex flex-wrap gap-2">
-            <Button
-              className={buttonClass}
-              disabled={isActing}
-              onClick={() =>
-                void perform(() => connections.accept(state.connectionId))
-              }
-              type="button"
-            >
-              Accept
-            </Button>
             <Button
               className={buttonClass}
               disabled={isActing}
@@ -168,17 +139,16 @@ export function UserConnectionActions({
             >
               Reject
             </Button>
-            {showBlock ? (
-              <Button
-                className={buttonClass}
-                disabled={isActing}
-                onClick={() => setConfirming("block")}
-                type="button"
-                variant="quiet"
-              >
-                Block
-              </Button>
-            ) : null}
+            <Button
+              className={buttonClass}
+              disabled={isActing}
+              onClick={() =>
+                void perform(() => connections.accept(state.connectionId))
+              }
+              type="button"
+            >
+              Accept
+            </Button>
           </div>
         </div>
       ) : state.status === "pending" ? (
@@ -200,21 +170,12 @@ export function UserConnectionActions({
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm font-medium text-muted">Request pending</p>
-            <Button
-              className={buttonClass}
-              disabled={isActing}
-              onClick={() => setConfirming("block")}
-              type="button"
-              variant="quiet"
-            >
-              Block
-            </Button>
           </div>
         )
       ) : state.status === "accepted" ? (
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm font-medium text-primary">
-            {showBlock ? "Accepted" : "Connected"}
+            Connected
           </p>
           <Button
             className={buttonClass}
@@ -225,17 +186,6 @@ export function UserConnectionActions({
           >
             Remove connection
           </Button>
-          {showBlock ? (
-            <Button
-              className={buttonClass}
-              disabled={isActing}
-              onClick={() => setConfirming("block")}
-              type="button"
-              variant="quiet"
-            >
-              Block
-            </Button>
-          ) : null}
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -247,17 +197,6 @@ export function UserConnectionActions({
           >
             {isActing ? "Sending…" : "Connect"}
           </Button>
-          {showBlock ? (
-            <Button
-              className={buttonClass}
-              disabled={isActing}
-              onClick={() => setConfirming("block")}
-              type="button"
-              variant="quiet"
-            >
-              Block
-            </Button>
-          ) : null}
         </div>
       )}
     </div>

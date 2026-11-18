@@ -348,37 +348,17 @@ async def test_user_discovery_pagination_profiles_and_block_filtering(
         own_profile.json()["updated_at"] >= before_profile_update.json()["updated_at"]
     )
 
-    blocked = await acceptance_client.post(
-        f"/connections/{profiles[0].id}/block",
-        headers=viewer.headers,
-    )
-    assert blocked.status_code == 200
-    hidden_profile = await acceptance_client.get(
+    visible_profile = await acceptance_client.get(
         f"/users/{profiles[0].id}",
         headers=viewer.headers,
     )
-    assert hidden_profile.status_code == 404
+    assert visible_profile.status_code == 200
     filtered = await acceptance_client.get(
         "/api/v1/users/discover",
         headers=viewer.headers,
         params={"q": "e2e_", "limit": 50},
     )
-    assert str(profiles[0].id) not in {item["id"] for item in filtered.json()["items"]}
-    reverse_hidden = await acceptance_client.get(
-        f"/users/{viewer.id}",
-        headers=profiles[0].headers,
-    )
-    assert reverse_hidden.status_code == 404
-    unblocked = await acceptance_client.delete(
-        f"/connections/{profiles[0].id}/block",
-        headers=viewer.headers,
-    )
-    assert unblocked.status_code == 204
-    visible_again = await acceptance_client.get(
-        f"/users/{profiles[0].id}",
-        headers=viewer.headers,
-    )
-    assert visible_again.status_code == 200
+    assert str(profiles[0].id) in {item["id"] for item in filtered.json()["items"]}
 
 
 @pytest.mark.asyncio
@@ -673,41 +653,6 @@ async def test_connection_cooldown_conversation_messaging_and_security(
         requester,
     )
     assert new_connection == UUID(accepted_request.json()["id"])
-    block = await acceptance_client.post(
-        f"/connections/{recipient.id}/block",
-        headers=requester.headers,
-    )
-    assert block.status_code == 200
-    reverse_blocked_message = await acceptance_client.post(
-        f"/conversations/{conversation_id}/messages",
-        headers=requester.headers,
-        json={"content": "Must also be denied in the other direction"},
-    )
-    assert reverse_blocked_message.status_code == 403
-    blocked_message = await acceptance_client.post(
-        f"/conversations/{conversation_id}/messages",
-        headers=recipient.headers,
-        json={"content": "Must be denied while blocked"},
-    )
-    assert blocked_message.status_code == 403
-    assert (
-        await acceptance_client.get(
-            f"/users/{requester.id}",
-            headers=recipient.headers,
-        )
-    ).status_code == 404
-    unblocked = await acceptance_client.delete(
-        f"/connections/{recipient.id}/block",
-        headers=requester.headers,
-    )
-    assert unblocked.status_code == 204
-    # Unblocking restores profile visibility, not the terminated connection.
-    assert (
-        await acceptance_client.get(
-            f"/users/{requester.id}",
-            headers=recipient.headers,
-        )
-    ).status_code == 200
     still_disconnected = await acceptance_client.post(
         f"/conversations/{conversation_id}/messages",
         headers=recipient.headers,

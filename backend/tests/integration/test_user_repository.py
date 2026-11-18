@@ -3,7 +3,6 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
-from backend.model.connection import UserBlock
 from backend.model.user import User
 from backend.repository.user_repository import UserRepository
 
@@ -36,7 +35,7 @@ async def test_user_repository_reads_and_updates_postgres_user(
 
 
 @pytest.mark.asyncio
-async def test_user_discovery_prefix_pagination_and_block_exclusion(
+async def test_user_discovery_prefix_pagination(
     postgres_test_engine: AsyncEngine,
 ) -> None:
     token = uuid4().hex
@@ -52,8 +51,6 @@ async def test_user_discovery_prefix_pagination_and_block_exclusion(
         for suffix in ("a", "b", "c", "d", "e", "owner")
     ]
     owner = users[-1]
-    blocked_by_owner, blocked_owner = users[1], users[3]
-
     async with postgres_test_engine.connect() as connection:
         transaction = await connection.begin()
         async with AsyncSession(
@@ -64,14 +61,6 @@ async def test_user_discovery_prefix_pagination_and_block_exclusion(
             repository = UserRepository(session)
             for user in users:
                 await repository.create(user)
-            session.add_all(
-                [
-                    UserBlock(blocker_id=owner.id, blocked_id=blocked_by_owner.id),
-                    UserBlock(blocker_id=blocked_owner.id, blocked_id=owner.id),
-                ]
-            )
-            await session.flush()
-
             first_page = await repository.discover_users(
                 owner.id,
                 query=prefix.upper(),
@@ -87,9 +76,10 @@ async def test_user_discovery_prefix_pagination_and_block_exclusion(
 
             assert [user.username for user in first_page] == [
                 f"{prefix}_a",
-                f"{prefix}_c",
+                f"{prefix}_b",
             ]
             assert [user.username for user in second_page] == [
-                f"{prefix}_e",
+                f"{prefix}_c",
+                f"{prefix}_d",
             ]
         await transaction.rollback()

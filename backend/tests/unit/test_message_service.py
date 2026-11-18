@@ -94,7 +94,6 @@ class MemoryConversationRepository:
     def __init__(self) -> None:
         self.user_ids: set[UUID] = set()
         self.connection_status: dict[tuple[UUID, UUID], str] = {}
-        self.blocks: set[tuple[UUID, UUID]] = set()
 
     @staticmethod
     def pair(first_id: UUID, second_id: UUID) -> tuple[UUID, UUID]:
@@ -103,9 +102,6 @@ class MemoryConversationRepository:
 
     async def lock_pair_users(self, first_id: UUID, second_id: UUID) -> bool:
         return first_id in self.user_ids and second_id in self.user_ids
-
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
-        return self.pair(first_id, second_id) in self.blocks
 
     async def get_connection_status(
         self,
@@ -218,8 +214,8 @@ async def test_idempotent_send_returns_original_message_for_retries(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("restriction", ["removed", "blocked"])
-async def test_send_requires_accepted_unblocked_connection(
+@pytest.mark.parametrize("restriction", ["removed"])
+async def test_send_requires_accepted_connection(
     restriction: str,
     message_setup: tuple[
         UUID,
@@ -236,8 +232,6 @@ async def test_send_requires_accepted_unblocked_connection(
     pair = connections.pair(sender_id, recipient_id)
     if restriction == "removed":
         connections.connection_status[pair] = "removed"
-    else:
-        connections.blocks.add(pair)
 
     history = await service.list_messages(
         conversation.id,

@@ -45,6 +45,7 @@ const entry = {
     user_low_id: "current-user",
     user_high_id: "other-user",
     created_at: "2026-11-09T09:00:00Z",
+    unread_count: 2,
   },
   participantId: "other-user",
   participant: {

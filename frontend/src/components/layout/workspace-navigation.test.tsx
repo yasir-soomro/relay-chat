@@ -26,15 +26,13 @@ describe("WorkspaceNavigation", () => {
       screen.getByRole("link", { name: "Requests, 3 pending requests" }),
     ).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: "Messages, 2 unread messages" }),
+      screen.getByRole("link", { name: "SpaceHub, 2 unread messages" }),
     ).toBeTruthy();
     expect(
       screen.getByRole("link", { name: "Discover people" }).getAttribute(
         "aria-current",
       ),
     ).toBe("page");
-    expect(
-      screen.getByRole("link", { name: "Overview" }).getAttribute("href"),
-    ).toBe("/app");
+    expect(screen.queryByRole("link", { name: "Overview" })).toBeNull();
   });
 });

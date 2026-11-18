@@ -24,26 +24,32 @@ export function ChatHeader({
   onReconnect,
 }: ChatHeaderProps) {
   return (
-    <header className="flex min-w-0 items-center gap-3 border-b border-line px-4 py-4 sm:px-6">
+    <header className="messages-chat-header flex min-w-0 items-center gap-3 px-4 py-3 sm:px-5">
       <Link
         aria-label="Back to conversations"
-        className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-xl text-muted transition-colors hover:bg-soft hover:text-ink focus-visible:outline-focus motion-reduce:transition-none"
+        className="messages-back-link inline-flex size-9 shrink-0 items-center justify-center rounded-full text-lg text-muted transition-colors hover:bg-soft hover:text-ink focus-visible:outline-focus motion-reduce:transition-none"
         href="/conversations"
       >
         <span aria-hidden="true">←</span>
       </Link>
       <ConversationParticipant
         compact
+        linkToProfile={false}
         profile={participant}
         userId={participantId}
       />
-      <div className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted">
-        <span aria-live="polite" role="status">
-          {connectionLabels[connectionState]}
-        </span>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        {participant ? (
+          <Link
+            className="messages-view-profile rounded-lg px-2.5 py-2 text-[10px] font-semibold text-primary transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            href={`/app/users/${encodeURIComponent(participantId)}`}
+          >
+            View profile <span aria-hidden="true">↗</span>
+          </Link>
+        ) : null}
         {connectionState === "offline" ? (
           <button
-            className="rounded px-2 py-1 font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-focus"
+            className="messages-reconnect rounded-lg px-2 py-2 text-[10px] font-semibold text-primary transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             onClick={onReconnect}
             type="button"
           >
@@ -51,7 +57,7 @@ export function ChatHeader({
           </button>
         ) : null}
       </div>
-      <span className="sr-only">Conversation</span>
+      <span className="sr-only">{connectionLabels[connectionState]}</span>
     </header>
   );
 }

@@ -123,7 +123,7 @@ Recommended frontend routes:
 | `/` | Public | Product introduction and sign-in/register entry points |
 | `/login` | Public | Email/password authentication |
 | `/register` | Public | Account registration |
-| `/app` | Authenticated | Signed-in landing page and useful conversation/connection entry points |
+| `/app` | Authenticated | Legacy entry point; redirects to the conversations page |
 | `/app/discover` | Authenticated | User discovery, when a supported discovery contract is available |
 | `/app/users/[userId]` | Authenticated | Public profile and eligible connection actions |
 | `/app/profile` | Authenticated | View/update the signed-in user's profile |

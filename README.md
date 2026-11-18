@@ -61,16 +61,40 @@ The [Root Product Specification](./docs/sdd/spec.md) and
 [Backend Technical Specification](./docs/sdd/backend/spec.md) remain the
 authoritative product and backend references.
 
-## Verification
+## Run the frontend
 
-From `backend/`:
+Requirements: Node.js 20.9+ and npm. Configure `RELAY_API_ORIGIN` in
+`frontend/.env.local` when the backend is not at its default local address.
+The backend must allow the frontend origin through `AUTH_ALLOWED_ORIGINS`.
+See the [frontend README](./frontend/README.md) for authentication, theme, and
+development details.
 
 ```powershell
-uv run pytest --cov=backend --cov-report=term-missing:skip-covered
-uv run ruff check src tests migrations
-uv run ruff format --check src tests migrations
-uv run mypy src/backend
-uv run bandit -q -r src/backend
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend runs at `http://localhost:3000`.
+
+## Verification
+
+Run the frontend checks from `frontend/`:
+
+```powershell
+npm test
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Run the backend checks from `backend/`:
+
+```powershell
+uv run pytest
+uv run ruff check .
+uv run mypy src
+uv run bandit -q -r src
 uv run pip-audit --skip-editable
 ```
 

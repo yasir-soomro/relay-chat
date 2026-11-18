@@ -11,7 +11,7 @@ export function ConversationPreview({ compact = false }: { compact?: boolean }) 
       />
       <div
         aria-hidden="true"
-        className="absolute -right-4 bottom-10 size-28 rounded-full bg-soft blur-2xl sm:-right-8 sm:size-36"
+        className="absolute right-0 bottom-10 size-28 rounded-full bg-soft blur-2xl sm:-right-8 sm:size-36"
       />
 
       <div className="relative rounded-3xl border border-line bg-surface p-3 shadow-card sm:p-4">

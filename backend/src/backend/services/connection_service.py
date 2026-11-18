@@ -7,7 +7,6 @@ from backend.repository.connection_repository import (
     ConnectionRepositoryProtocol,
 )
 from backend.schemas.connection import (
-    BlockResponse,
     ConnectionListResponse,
     ConnectionResponse,
 )
@@ -33,10 +32,6 @@ class InvalidConnectionTransitionError(ConnectionManagementError):
     pass
 
 
-class ConnectionBlockedError(ConnectionManagementError):
-    pass
-
-
 class SelfConnectionError(ConnectionManagementError):
     pass
 
@@ -55,14 +50,6 @@ class ConnectionCooldownActiveError(ConnectionManagementError):
         super().__init__("The request cooldown has not elapsed")
 
 
-class BlockAlreadyExistsError(ConnectionManagementError):
-    pass
-
-
-class BlockNotFoundError(ConnectionManagementError):
-    pass
-
-
 class ConnectionService:
     def __init__(
         self,
@@ -79,8 +66,6 @@ class ConnectionService:
     ) -> ConnectionResponse:
         self._reject_self_connection(requester_id, recipient_id)
         await self._lock_pair(requester_id, recipient_id)
-        await self._ensure_not_blocked(requester_id, recipient_id)
-
         connection = await self._repository.get_by_pair_for_update(
             requester_id,
             recipient_id,
@@ -135,7 +120,6 @@ class ConnectionService:
     ) -> ConnectionResponse:
         connection = await self._get_request_pair(connection_id, recipient_id)
         await self._lock_pair(connection.requester_id, connection.recipient_id)
-        await self._ensure_not_blocked(connection.requester_id, connection.recipient_id)
         connection = await self._get_locked_connection(connection_id)
         if connection.recipient_id != recipient_id:
             raise ConnectionPermissionError
@@ -152,7 +136,6 @@ class ConnectionService:
     ) -> ConnectionResponse:
         connection = await self._get_request_pair(connection_id, recipient_id)
         await self._lock_pair(connection.requester_id, connection.recipient_id)
-        await self._ensure_not_blocked(connection.requester_id, connection.recipient_id)
         connection = await self._get_locked_connection(connection_id)
         if connection.recipient_id != recipient_id:
             raise ConnectionPermissionError
@@ -171,10 +154,6 @@ class ConnectionService:
         if connection.requester_id != requester_id:
             raise ConnectionPermissionError
         await self._lock_pair(connection.requester_id, connection.recipient_id)
-        await self._ensure_not_blocked(
-            connection.requester_id,
-            connection.recipient_id,
-        )
         connection = await self._get_locked_connection(connection_id)
         if connection.requester_id != requester_id:
             raise ConnectionPermissionError
@@ -191,7 +170,6 @@ class ConnectionService:
     ) -> ConnectionResponse:
         self._reject_self_connection(user_id, other_user_id)
         await self._lock_pair(user_id, other_user_id)
-        await self._ensure_not_blocked(user_id, other_user_id)
         connection = await self._repository.get_by_pair_for_update(
             user_id,
             other_user_id,
@@ -204,42 +182,11 @@ class ConnectionService:
         await self._repository.commit()
         return ConnectionResponse.model_validate(connection)
 
-    async def block_user(self, blocker_id: UUID, blocked_id: UUID) -> BlockResponse:
-        self._reject_self_connection(blocker_id, blocked_id)
-        await self._lock_pair(blocker_id, blocked_id)
-        if await self._repository.is_blocked_between(blocker_id, blocked_id):
-            if await self._repository.is_blocked_by(blocker_id, blocked_id):
-                raise BlockAlreadyExistsError
-            raise ConnectionBlockedError
-
-        connection = await self._repository.get_by_pair_for_update(
-            blocker_id,
-            blocked_id,
-        )
-        now = datetime.now(UTC)
-        block = await self._repository.create_block(blocker_id, blocked_id)
-        if connection is not None and connection.status in {"pending", "accepted"}:
-            await self._repository.update_status(connection, "removed", now)
-        await self._repository.commit()
-        return BlockResponse(
-            blocked_user_id=blocked_id, created_at=block.created_at or now
-        )
-
-    async def unblock_user(self, blocker_id: UUID, blocked_id: UUID) -> None:
-        self._reject_self_connection(blocker_id, blocked_id)
-        await self._lock_pair(blocker_id, blocked_id)
-        if not await self._repository.delete_block(blocker_id, blocked_id):
-            raise BlockNotFoundError
-        await self._repository.commit()
-
     async def list_connections(self, user_id: UUID) -> ConnectionListResponse:
         items = await self._repository.list_accepted(user_id)
         return ConnectionListResponse(
             items=[ConnectionResponse.model_validate(item) for item in items]
         )
-
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
-        return await self._repository.is_blocked_between(first_id, second_id)
 
     async def _retry_rejected_request(
         self,
@@ -284,10 +231,6 @@ class ConnectionService:
     async def _lock_pair(self, first_id: UUID, second_id: UUID) -> None:
         if not await self._repository.lock_pair_users(first_id, second_id):
             raise ConnectionUserNotFoundError
-
-    async def _ensure_not_blocked(self, first_id: UUID, second_id: UUID) -> None:
-        if await self._repository.is_blocked_between(first_id, second_id):
-            raise ConnectionBlockedError
 
     @staticmethod
     def _reject_self_connection(first_id: UUID, second_id: UUID) -> None:

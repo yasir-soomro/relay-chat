@@ -42,8 +42,10 @@ describe("PublicProfilePage", () => {
 
     expect(screen.getByRole("status").textContent).toContain("Loading profile");
     expect(await screen.findByText("Relay User")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Public profile" })).toBeTruthy();
     expect(screen.getByText("@relay_user")).toBeTruthy();
     expect(screen.getByText("No bio added yet.")).toBeTruthy();
+    expect(screen.getByText("Say hello to Relay User.")).toBeTruthy();
     expect(screen.queryByText("private@example.com")).toBeNull();
     await waitFor(() => {
       expect(mockAuthenticatedFetch).toHaveBeenCalledWith(
@@ -70,6 +72,6 @@ describe("PublicProfilePage", () => {
       screen
         .getByRole("link", { name: "Return to your workspace" })
         .getAttribute("href"),
-    ).toBe("/app");
+    ).toBe("/conversations");
   });
 });

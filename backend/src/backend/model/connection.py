@@ -9,7 +9,6 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     func,
-    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.types import Uuid
@@ -85,41 +84,4 @@ class Connection(Base):
     removed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
-    )
-
-
-class UserBlock(Base):
-    __tablename__ = "user_blocks"
-    __table_args__ = (
-        CheckConstraint(
-            "blocker_id <> blocked_id",
-            name="ck_user_blocks_distinct_users",
-        ),
-        UniqueConstraint("blocker_id", "blocked_id", name="uq_user_blocks_direction"),
-        Index(
-            "uq_user_blocks_pair",
-            func.least(text("blocker_id"), text("blocked_id")),
-            func.greatest(text("blocker_id"), text("blocked_id")),
-            unique=True,
-        ),
-        Index("ix_user_blocks_blocked_id", "blocked_id"),
-    )
-
-    id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True), primary_key=True, default=uuid4
-    )
-    blocker_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    blocked_id: Mapped[UUID] = mapped_column(
-        Uuid(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
     )

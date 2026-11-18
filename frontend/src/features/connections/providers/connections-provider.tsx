@@ -12,7 +12,6 @@ import {
 import { useAuth } from "@/features/auth/providers/auth-provider";
 import {
   acceptConnectionRequest,
-  blockUser,
   cancelConnectionRequest,
   ConnectionRequestError,
   listAcceptedConnections,
@@ -21,7 +20,6 @@ import {
   rejectConnectionRequest,
   removeConnection,
   sendConnectionRequest,
-  unblockUser,
 } from "@/features/connections/api";
 import type {
   ConnectionPage,
@@ -46,8 +44,6 @@ type ConnectionsContextValue = ConnectionLists & {
   accept: (connectionId: string) => Promise<void>;
   reject: (connectionId: string) => Promise<void>;
   remove: (userId: string) => Promise<void>;
-  block: (userId: string, displayName?: string) => Promise<void>;
-  unblock: (userId: string) => Promise<void>;
 };
 
 const ConnectionsContext = createContext<ConnectionsContextValue | null>(null);
@@ -77,13 +73,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
-  const [blockedIds, setBlockedIds] = useState<Set<string>>(() => new Set());
   const [rejectedIds, setRejectedIds] = useState<Set<string>>(() => new Set());
-  const [lastBlocked, setLastBlocked] = useState<{
-    userId: string;
-    displayName: string;
-  } | null>(null);
-  const [feedbackIsError, setFeedbackIsError] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -128,9 +118,6 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
 
   const stateFor = useCallback(
     (userId: string): ConnectionViewState => {
-      if (blockedIds.has(userId)) {
-        return { status: "blocked" };
-      }
       if (rejectedIds.has(userId)) {
         return { status: "rejected" };
       }
@@ -164,7 +151,7 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
       }
       return { status: "none" };
     },
-    [blockedIds, lists, rejectedIds],
+    [lists, rejectedIds],
   );
 
   const request = useCallback(
@@ -180,11 +167,6 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
         ...current,
         outgoing: upsertConnection(current.outgoing, connection),
       }));
-      setBlockedIds((current) => {
-        const next = new Set(current);
-        next.delete(userId);
-        return next;
-      });
       setRejectedIds((current) => {
         const next = new Set(current);
         next.delete(userId);
@@ -294,76 +276,6 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
     [authenticatedFetch],
   );
 
-  const block = useCallback(
-    async (userId: string, displayName = "this member") => {
-      const block = await blockUser(authenticatedFetch, userId);
-      if (block.blocked_user_id !== userId) {
-        throw new ConnectionRequestError(
-          502,
-          "Relay returned an unexpected block response.",
-        );
-      }
-      setLists((current) => ({
-        incoming: current.incoming.filter(
-          (item) =>
-            item.requester_id !== userId && item.recipient_id !== userId,
-        ),
-        outgoing: current.outgoing.filter(
-          (item) =>
-            item.requester_id !== userId && item.recipient_id !== userId,
-        ),
-        accepted: current.accepted.filter(
-          (item) =>
-            item.requester_id !== userId && item.recipient_id !== userId,
-        ),
-      }));
-      setBlockedIds((current) => new Set(current).add(userId));
-      setRejectedIds((current) => {
-        const next = new Set(current);
-        next.delete(userId);
-        return next;
-      });
-      setLastBlocked({ userId, displayName });
-      setFeedbackIsError(false);
-      setFeedback("Member blocked. You can unblock them here.");
-    },
-    [authenticatedFetch],
-  );
-
-  const unblock = useCallback(
-    async (userId: string) => {
-      try {
-        await unblockUser(authenticatedFetch, userId);
-      } catch (cause) {
-        if (
-          cause instanceof ConnectionRequestError &&
-          cause.status === 404
-        ) {
-          setBlockedIds((current) => {
-            const next = new Set(current);
-            next.delete(userId);
-            return next;
-          });
-          setLastBlocked((current) =>
-            current?.userId === userId ? null : current,
-          );
-        }
-        throw cause;
-      }
-      setBlockedIds((current) => {
-        const next = new Set(current);
-        next.delete(userId);
-        return next;
-      });
-      setLastBlocked((current) =>
-        current?.userId === userId ? null : current,
-      );
-      setFeedbackIsError(false);
-      setFeedback("Member unblocked.");
-    },
-    [authenticatedFetch],
-  );
-
   const value = useMemo(
     () => ({
       ...lists,
@@ -377,12 +289,9 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
       accept,
       reject,
       remove,
-      block,
-      unblock,
     }),
     [
       accept,
-      block,
       cancelRequest,
       error,
       feedback,
@@ -393,62 +302,29 @@ export function ConnectionsProvider({ children }: { children: ReactNode }) {
       remove,
       request,
       stateFor,
-      unblock,
     ],
   );
-
-  async function undoLastBlock() {
-    if (!lastBlocked) {
-      return;
-    }
-    try {
-      await unblock(lastBlocked.userId);
-    } catch (cause) {
-      setFeedbackIsError(true);
-      setFeedback(
-        cause instanceof Error
-          ? cause.message
-          : "We could not unblock this member. Please try again.",
-      );
-    }
-  }
 
   return (
     <ConnectionsContext.Provider value={value}>
       {feedback ? (
         <div
           aria-live="polite"
-          className={`fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-lg rounded-xl border px-4 py-3 text-sm font-medium shadow-card sm:left-auto sm:right-6 ${
-            feedbackIsError
-              ? "border-danger bg-surface text-danger"
-              : "border-line bg-surface text-ink"
-          }`}
-          role={feedbackIsError ? "alert" : "status"}
+          className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-lg rounded-xl border border-line bg-surface px-4 py-3 text-sm font-medium text-ink shadow-card sm:left-auto sm:right-6"
+          role="status"
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <span>{feedback}</span>
-              {lastBlocked ? (
-                <button
-                  className="min-h-8 font-semibold text-primary underline underline-offset-4"
-                  disabled={isLoading}
-                  onClick={() => void undoLastBlock()}
-                  type="button"
-                >
-                  Unblock {lastBlocked.displayName}
-                </button>
-              ) : null}
             </div>
-            {!lastBlocked ? (
-              <button
-                aria-label="Dismiss connection message"
-                className="min-h-6 min-w-6 text-muted hover:text-ink"
-                onClick={() => setFeedback("")}
-                type="button"
-              >
-                ×
-              </button>
-            ) : null}
+            <button
+              aria-label="Dismiss connection message"
+              className="min-h-6 min-w-6 text-muted hover:text-ink"
+              onClick={() => setFeedback("")}
+              type="button"
+            >
+              ×
+            </button>
           </div>
         </div>
       ) : null}

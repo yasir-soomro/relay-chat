@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { surfaceCardClassName } from "@/components/ui/card";
 import { ProfileCard } from "@/features/users/components/profile-card";
 import { ProfileEditor } from "@/features/users/components/profile-editor";
 import {
@@ -19,8 +21,8 @@ export function MyProfilePage() {
   const [profile, setProfile] = useState<UserAccountProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -53,21 +55,22 @@ export function MyProfilePage() {
 
   function handleSaved(updatedProfile: UserAccountProfile) {
     setProfile(updatedProfile);
-    setIsEditing(false);
     setSaved(true);
+    setIsEditing(false);
   }
 
   return (
-    <section aria-labelledby="profile-heading" className="mx-auto max-w-3xl">
-      <p className="text-sm font-medium text-primary">Account</p>
+    <section aria-labelledby="profile-heading" className="profile-page mx-auto w-full max-w-5xl">
       <h1
-        className="mt-2 text-3xl font-medium tracking-[-0.055em] text-ink sm:text-4xl"
+        className="text-[1.7rem] font-semibold leading-tight tracking-[-0.035em] text-ink sm:text-[2rem]"
         id="profile-heading"
       >
-        Your profile
+        A little more you.
       </h1>
-      <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
-        Manage the details you share with other Relay members.
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+        {isEditing
+          ? "Update the details people see when they discover your profile."
+          : "Manage how you appear to people across Relay."}
       </p>
 
       {isLoading ? (
@@ -96,11 +99,11 @@ export function MyProfilePage() {
           </Button>
         </div>
       ) : profile ? (
-        <div className="mt-8 space-y-5">
+        <div className="profile-mode-content mt-6">
           {saved ? (
             <p
               aria-live="polite"
-              className="rounded-xl border border-line bg-soft px-4 py-3 text-sm text-primary"
+              className="mb-4 rounded-lg bg-success-soft px-4 py-3 text-sm text-success"
               role="status"
             >
               Your profile has been updated.
@@ -108,6 +111,7 @@ export function MyProfilePage() {
           ) : null}
           {isEditing ? (
             <ProfileEditor
+              key={profile.updated_at}
               initialValues={{
                 username: profile.username,
                 display_name: profile.display_name,
@@ -116,20 +120,45 @@ export function MyProfilePage() {
               onCancel={() => setIsEditing(false)}
               onSave={saveProfile}
               onSaved={handleSaved}
+              onValuesChange={() => setSaved(false)}
             />
           ) : (
-            <>
-              <ProfileCard profile={profile} email={profile.email} />
-              <Button
-                onClick={() => {
-                  setSaved(false);
-                  setIsEditing(true);
-                }}
-                type="button"
+            <div className="profile-view-grid grid min-w-0 items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(16rem,0.85fr)]">
+              <ProfileCard profile={profile} />
+              <aside
+                aria-label="Profile visibility"
+                className={`${surfaceCardClassName} profile-view-aside min-w-0 p-5`}
               >
-                Edit profile
-              </Button>
-            </>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary">
+                  Your profile
+                </p>
+                <h2 className="mt-3 text-base font-semibold text-ink">
+                  Make it personal, keep it safe.
+                </h2>
+                <p className="mt-2 text-xs leading-5 text-muted">
+                  Your name, username, and bio are visible to Relay members.
+                  Keep private information out of your bio.
+                </p>
+                <Link
+                  className="mt-5 inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-primary transition-colors hover:bg-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                  href={`/app/users/${encodeURIComponent(profile.id)}`}
+                >
+                  View public profile
+                </Link>
+                <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
+                  <Button
+                    className="min-h-9 rounded-lg px-4 py-2 text-xs"
+                    onClick={() => {
+                      setSaved(false);
+                      setIsEditing(true);
+                    }}
+                    type="button"
+                  >
+                    Edit profile
+                  </Button>
+                </div>
+              </aside>
+            </div>
           )}
         </div>
       ) : (

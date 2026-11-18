@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { UserConnectionActions } from "@/features/connections/components/user-connection-actions";
 import { ConnectionsProvider } from "@/features/connections/providers/connections-provider";
@@ -10,7 +10,6 @@ const { authenticatedFetch } = vi.hoisted(() => ({
 
 type ActionOptions = {
   compact?: boolean;
-  showBlock?: boolean;
   allowCancelRequest?: boolean;
 };
 
@@ -42,76 +41,6 @@ describe("UserConnectionActions", () => {
     authenticatedFetch.mockReset();
   });
 
-  it("blocks and immediately offers an unblock action, then confirms unblocking", async () => {
-    authenticatedFetch.mockImplementation(
-      (input: RequestInfo | URL, init?: RequestInit) => {
-        const path = String(input);
-        const method = init?.method ?? "GET";
-        if (path === "/connections/other-user-id/block" && method === "POST") {
-          return Promise.resolve(
-            jsonResponse({
-              blocked_user_id: "other-user-id",
-              created_at: "2026-11-08T00:00:00Z",
-            }),
-          );
-        }
-        if (path === "/connections/other-user-id/block" && method === "DELETE") {
-          return Promise.resolve(new Response(null, { status: 204 }));
-        }
-        return Promise.resolve(jsonResponse({ items: [] }));
-      },
-    );
-    renderActions();
-
-    fireEvent.click(await screen.findByRole("button", { name: "Block" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-
-    expect(await screen.findByRole("button", { name: "Unblock" })).toBeTruthy();
-    expect(screen.getByText("Member blocked. You can unblock them here.")).toBeTruthy();
-    fireEvent.click(
-      screen.getByRole("button", { name: "Unblock Relay Friend" }),
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Connect" })).toBeTruthy();
-    });
-    expect(screen.getByText("Member unblocked.")).toBeTruthy();
-  });
-
-  it("reports when an unblock target is no longer available", async () => {
-    authenticatedFetch.mockImplementation(
-      (input: RequestInfo | URL, init?: RequestInit) => {
-        const path = String(input);
-        const method = init?.method ?? "GET";
-        if (path === "/connections/other-user-id/block" && method === "POST") {
-          return Promise.resolve(
-            jsonResponse({
-              blocked_user_id: "other-user-id",
-              created_at: "2026-11-08T00:00:00Z",
-            }),
-          );
-        }
-        if (path === "/connections/other-user-id/block" && method === "DELETE") {
-          return Promise.resolve(
-            jsonResponse({ detail: "Block not found" }, 404),
-          );
-        }
-        return Promise.resolve(jsonResponse({ items: [] }));
-      },
-    );
-    renderActions();
-
-    fireEvent.click(await screen.findByRole("button", { name: "Block" }));
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Unblock Relay Friend" }),
-    );
-
-    expect(
-      await screen.findByText("This unblock target is no longer available."),
-    ).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Unblock Relay Friend" })).toBeNull();
-  });
 
   it("shows a clear cooldown error returned by the backend", async () => {
     authenticatedFetch.mockImplementation(
@@ -194,7 +123,6 @@ describe("UserConnectionActions", () => {
     renderActions({
       allowCancelRequest: true,
       compact: true,
-      showBlock: false,
     });
 
     fireEvent.click(await screen.findByRole("button", { name: "Connect" }));
@@ -202,7 +130,6 @@ describe("UserConnectionActions", () => {
       await screen.findByRole("button", { name: "Cancel Request" }),
     ).toBeTruthy();
     expect(screen.getByText("Pending")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Block" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel Request" }));
     expect(await screen.findByRole("button", { name: "Connect" })).toBeTruthy();
@@ -226,7 +153,7 @@ describe("UserConnectionActions", () => {
     ).toHaveLength(2);
   });
 
-  it("shows Connected without removing block actions from other views", async () => {
+  it("shows connected and remove connection", async () => {
     const accepted = {
       id: "accepted-id",
       requester_id: "current-user-id",
@@ -246,15 +173,13 @@ describe("UserConnectionActions", () => {
     renderActions({
       allowCancelRequest: true,
       compact: true,
-      showBlock: false,
     });
 
     expect(await screen.findByText("Connected")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Remove connection" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Block" })).toBeNull();
   });
 
-  it("keeps incoming-request decisions while hiding Block on discovery cards", async () => {
+  it("keeps incoming-request decisions", async () => {
     const incoming = {
       id: "incoming-id",
       requester_id: "other-user-id",
@@ -274,12 +199,10 @@ describe("UserConnectionActions", () => {
     renderActions({
       allowCancelRequest: true,
       compact: true,
-      showBlock: false,
     });
 
     expect(await screen.findByText("Pending")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Accept" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Reject" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Block" })).toBeNull();
   });
 });

@@ -2,20 +2,16 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from sqlalchemy import and_, delete, exists, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.model.connection import Connection, UserBlock
+from backend.model.connection import Connection
 from backend.model.user import User
 
 
 class ConnectionRepositoryProtocol(Protocol):
     async def lock_pair_users(self, first_id: UUID, second_id: UUID) -> bool: ...
-
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool: ...
-
-    async def is_blocked_by(self, blocker_id: UUID, blocked_id: UUID) -> bool: ...
 
     async def get_by_pair_for_update(
         self,
@@ -50,10 +46,6 @@ class ConnectionRepositoryProtocol(Protocol):
 
     async def list_accepted(self, user_id: UUID) -> list[Connection]: ...
 
-    async def create_block(self, blocker_id: UUID, blocked_id: UUID) -> UserBlock: ...
-
-    async def delete_block(self, blocker_id: UUID, blocked_id: UUID) -> bool: ...
-
     async def commit(self) -> None: ...
 
 
@@ -74,32 +66,6 @@ class ConnectionRepository:
             .with_for_update()
         )
         return len((await self._session.scalars(statement)).all()) == 2
-
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
-        statement = select(
-            exists().where(
-                or_(
-                    and_(
-                        UserBlock.blocker_id == first_id,
-                        UserBlock.blocked_id == second_id,
-                    ),
-                    and_(
-                        UserBlock.blocker_id == second_id,
-                        UserBlock.blocked_id == first_id,
-                    ),
-                )
-            )
-        )
-        return bool(await self._session.scalar(statement))
-
-    async def is_blocked_by(self, blocker_id: UUID, blocked_id: UUID) -> bool:
-        statement = select(
-            exists().where(
-                UserBlock.blocker_id == blocker_id,
-                UserBlock.blocked_id == blocked_id,
-            )
-        )
-        return bool(await self._session.scalar(statement))
 
     async def get_by_pair_for_update(
         self,
@@ -177,42 +143,17 @@ class ConnectionRepository:
 
     async def list_requests(self, user_id: UUID, *, incoming: bool) -> list[Connection]:
         owner_column = Connection.recipient_id if incoming else Connection.requester_id
-        blocked = exists().where(
-            or_(
-                and_(
-                    UserBlock.blocker_id == Connection.requester_id,
-                    UserBlock.blocked_id == Connection.recipient_id,
-                ),
-                and_(
-                    UserBlock.blocker_id == Connection.recipient_id,
-                    UserBlock.blocked_id == Connection.requester_id,
-                ),
-            )
-        )
         statement = (
             select(Connection)
             .where(
                 owner_column == user_id,
                 Connection.status == "pending",
-                ~blocked,
             )
             .order_by(Connection.requested_at, Connection.id)
         )
         return list((await self._session.scalars(statement)).all())
 
     async def list_accepted(self, user_id: UUID) -> list[Connection]:
-        blocked = exists().where(
-            or_(
-                and_(
-                    UserBlock.blocker_id == Connection.user_low_id,
-                    UserBlock.blocked_id == Connection.user_high_id,
-                ),
-                and_(
-                    UserBlock.blocker_id == Connection.user_high_id,
-                    UserBlock.blocked_id == Connection.user_low_id,
-                ),
-            )
-        )
         statement = (
             select(Connection)
             .where(
@@ -221,29 +162,10 @@ class ConnectionRepository:
                     Connection.user_high_id == user_id,
                 ),
                 Connection.status == "accepted",
-                ~blocked,
             )
             .order_by(Connection.responded_at, Connection.id)
         )
         return list((await self._session.scalars(statement)).all())
-
-    async def create_block(self, blocker_id: UUID, blocked_id: UUID) -> UserBlock:
-        block = UserBlock(blocker_id=blocker_id, blocked_id=blocked_id)
-        self._session.add(block)
-        await self._session.flush()
-        return block
-
-    async def delete_block(self, blocker_id: UUID, blocked_id: UUID) -> bool:
-        statement = (
-            delete(UserBlock)
-            .where(
-                UserBlock.blocker_id == blocker_id,
-                UserBlock.blocked_id == blocked_id,
-            )
-            .returning(UserBlock.id)
-        )
-        result = await self._session.execute(statement)
-        return result.scalar_one_or_none() is not None
 
     async def commit(self) -> None:
         await self._session.commit()

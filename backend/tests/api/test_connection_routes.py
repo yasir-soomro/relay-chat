@@ -10,7 +10,6 @@ from backend.core.security import get_current_user
 from backend.main import app
 from backend.model.user import User
 from backend.schemas.connection import (
-    BlockResponse,
     ConnectionListResponse,
     ConnectionResponse,
     ConnectionStatus,
@@ -22,7 +21,6 @@ from backend.services.connection_service import ConnectionCooldownActiveError
 class ConnectionServiceStub:
     def __init__(self) -> None:
         self.request_call: tuple[UUID, UUID] | None = None
-        self.block_call: tuple[UUID, UUID] | None = None
         self.actions: list[tuple[str, UUID, UUID | None]] = []
 
     @staticmethod
@@ -89,13 +87,6 @@ class ConnectionServiceStub:
     ) -> ConnectionResponse:
         self.actions.append(("remove", user_id, other_user_id))
         return self._response(user_id, other_user_id, ConnectionStatus.REMOVED)
-
-    async def block_user(self, blocker_id: UUID, blocked_id: UUID) -> BlockResponse:
-        self.block_call = (blocker_id, blocked_id)
-        return BlockResponse(blocked_user_id=blocked_id, created_at=datetime.now(UTC))
-
-    async def unblock_user(self, blocker_id: UUID, blocked_id: UUID) -> None:
-        self.block_call = (blocker_id, blocked_id)
 
     async def list_connections(self, user_id: UUID) -> ConnectionListResponse:
         self.actions.append(("connections", user_id, None))
@@ -179,22 +170,6 @@ async def test_request_uses_principal_id_and_rejects_identity_override(
 
 
 @pytest.mark.asyncio
-async def test_block_route_uses_authenticated_user_as_blocker(
-    connection_client: AsyncClient,
-    connection_actor: AuthenticatedUser,
-) -> None:
-    service = ConnectionServiceStub()
-    app.dependency_overrides[get_current_user] = lambda: connection_actor
-    app.dependency_overrides[get_connection_service] = lambda: service
-    blocked_id = uuid4()
-
-    response = await connection_client.post(f"/connections/{blocked_id}/block")
-
-    assert response.status_code == 200
-    assert service.block_call == (connection_actor.id, blocked_id)
-
-
-@pytest.mark.asyncio
 async def test_rejected_request_retry_returns_stable_error_and_availability(
     connection_client: AsyncClient,
     connection_actor: AuthenticatedUser,
@@ -240,14 +215,11 @@ async def test_request_lifecycle_and_lists_use_authenticated_identity(
         f"/connections/requests/{connection_id}"
     )
     removed = await connection_client.delete(f"/connections/{other_user_id}")
-    unblocked = await connection_client.delete(f"/connections/{other_user_id}/block")
-
     assert incoming.status_code == outgoing.status_code == accepted.status_code == 200
     assert accepted_action.status_code == rejected_action.status_code == 200
     assert cancelled_action.status_code == 200
     assert cancelled_action.json()["status"] == "removed"
     assert removed.status_code == 200
-    assert unblocked.status_code == 204
     assert service.actions == [
         ("incoming", connection_actor.id, None),
         ("outgoing", connection_actor.id, None),
@@ -257,4 +229,3 @@ async def test_request_lifecycle_and_lists_use_authenticated_identity(
         ("cancel", connection_actor.id, connection_id),
         ("remove", connection_actor.id, other_user_id),
     ]
-    assert service.block_call == (connection_actor.id, other_user_id)

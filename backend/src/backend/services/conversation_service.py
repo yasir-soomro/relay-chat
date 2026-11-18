@@ -100,8 +100,6 @@ class ConversationService:
     ) -> None:
         if not await self._repository.lock_pair_users(user_id, recipient_id):
             raise ConversationUserNotFoundError
-        if await self._repository.is_blocked_between(user_id, recipient_id):
-            raise ConversationNotFoundError
         if await self._repository.get_connection_status(user_id, recipient_id) != (
             "accepted"
         ):

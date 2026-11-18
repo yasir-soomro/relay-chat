@@ -6,7 +6,6 @@ import pytest
 from backend.model.user import User
 from backend.schemas.user import UserProfileUpdate
 from backend.services.user_service import (
-    UserNotFoundError,
     UserPermissionError,
     UserService,
 )
@@ -82,15 +81,10 @@ def seed_user(
     return user
 
 
-class NoBlockChecker:
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
-        return False
-
-
 @pytest.mark.asyncio
 async def test_only_owner_can_update_profile() -> None:
     repository = InMemoryUserRepository()
-    service = UserService(repository, NoBlockChecker())
+    service = UserService(repository)
     owner = seed_user(repository)
     reads_before = repository.read_count
 
@@ -107,7 +101,7 @@ async def test_only_owner_can_update_profile() -> None:
 @pytest.mark.asyncio
 async def test_public_and_owner_profile_responses_are_separated() -> None:
     repository = InMemoryUserRepository()
-    service = UserService(repository, NoBlockChecker())
+    service = UserService(repository)
     owner = seed_user(repository)
 
     public_profile = await service.get_public_profile(owner.id, owner.id)
@@ -116,38 +110,10 @@ async def test_public_and_owner_profile_responses_are_separated() -> None:
     assert not hasattr(public_profile, "email")
 
 
-class BlockChecker:
-    def __init__(self, blocked: bool) -> None:
-        self.blocked = blocked
-        self.checked_pair: tuple[UUID, UUID] | None = None
-
-    async def is_blocked_between(self, first_id: UUID, second_id: UUID) -> bool:
-        self.checked_pair = (first_id, second_id)
-        return self.blocked
-
-
-@pytest.mark.asyncio
-async def test_blocked_profiles_are_hidden_in_both_directions() -> None:
-    repository = InMemoryUserRepository()
-    owner = seed_user(repository)
-    viewer = seed_user(
-        repository,
-        email="viewer@example.com",
-        username="viewer_user",
-    )
-    checker = BlockChecker(blocked=True)
-    service = UserService(repository, checker)
-
-    for requester_id, profile_id in ((viewer.id, owner.id), (owner.id, viewer.id)):
-        with pytest.raises(UserNotFoundError):
-            await service.get_public_profile(profile_id, requester_id)
-        assert checker.checked_pair == (profile_id, requester_id)
-
-
 @pytest.mark.asyncio
 async def test_profile_update_changes_only_submitted_fields() -> None:
     repository = InMemoryUserRepository()
-    service = UserService(repository, NoBlockChecker())
+    service = UserService(repository)
     owner = seed_user(repository, bio="Original bio")
 
     updated = await service.update_profile(
@@ -166,7 +132,7 @@ async def test_profile_update_changes_only_submitted_fields() -> None:
 @pytest.mark.asyncio
 async def test_discovery_normalizes_search_and_uses_extra_row_for_cursor() -> None:
     repository = InMemoryUserRepository()
-    service = UserService(repository, NoBlockChecker())
+    service = UserService(repository)
     requester_id = uuid4()
     first = seed_user(repository, username="search_a")
     second = seed_user(

@@ -15,19 +15,16 @@ type WorkspaceNavigationItem = {
 const primaryItems: WorkspaceNavigationItem[] = [
   { href: "/discover", icon: "discover", label: "Discover people" },
   { href: "/app/connections", icon: "request", label: "Requests" },
-  { href: "/conversations", icon: "messages", label: "Messages" },
+  { href: "/conversations", icon: "spacehub", label: "SpaceHub" },
   { href: "/app/profile", icon: "profile", label: "My profile" },
 ];
 
 const secondaryItems: WorkspaceNavigationItem[] = [
-  { href: "/app", icon: "steps", label: "Overview" },
   { href: "/notifications", icon: "notification", label: "Notifications" },
 ];
 
 function isCurrentRoute(pathname: string, href: string) {
-  return href === "/app"
-    ? pathname === href
-    : pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 function NavigationLink({
@@ -88,7 +85,7 @@ export function WorkspaceNavigation() {
               badge={
                 item.label === "Requests"
                   ? pendingRequestCount
-                  : item.label === "Messages"
+                  : item.href === "/conversations"
                     ? unreadCount
                     : undefined
               }

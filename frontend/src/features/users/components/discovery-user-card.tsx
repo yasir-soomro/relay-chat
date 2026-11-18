@@ -52,7 +52,6 @@ export function DiscoveryUserCard({ profile }: { profile: UserProfile }) {
             allowCancelRequest
             compact
             displayName={profile.display_name}
-            showBlock={false}
             userId={profile.id}
           />
         </div>

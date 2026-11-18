@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConversationsPage } from "@/features/conversations/components/conversations-page";
 import { ConversationDetailPage } from "@/features/conversations/components/conversation-detail-page";
@@ -25,7 +25,7 @@ const conversation = {
   user_low_id: "current-user-id",
   user_high_id: "other-user-id",
   created_at: "2026-11-08T00:00:00Z",
-  unread_count: 0,
+  unread_count: 2,
 };
 const connection = {
   id: "connection-id",
@@ -42,6 +42,20 @@ const profile = {
   username: "relay_friend",
   display_name: "Relay Friend",
   bio: null,
+};
+
+const previewMessage = {
+  id: "latest-message-id",
+  conversation_id: "conversation-id",
+  sender_id: "other-user-id",
+  content: "Hello from the inbox",
+  status: "sent",
+  created_at: "2026-11-08T10:42:00Z",
+  updated_at: "2026-11-08T10:42:00Z",
+  sent_at: "2026-11-08T10:42:00Z",
+  delivered_at: null,
+  read_at: null,
+  deleted_at: null,
 };
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -75,8 +89,16 @@ describe("ConversationsPage", () => {
         if (path === "/conversations" && !init?.method) {
           return Promise.resolve(jsonResponse({ items: [conversation] }));
         }
+        if (path === "/conversations/conversation-id") {
+          return Promise.resolve(jsonResponse(conversation));
+        }
         if (path === "/users/other-user-id") {
           return Promise.resolve(jsonResponse(profile));
+        }
+        if (path.startsWith("/conversations/conversation-id/messages?")) {
+          return Promise.resolve(
+            jsonResponse({ items: [previewMessage], next_cursor: null }),
+          );
         }
         return Promise.resolve(jsonResponse({ items: [] }));
       },
@@ -84,12 +106,30 @@ describe("ConversationsPage", () => {
 
     renderInbox();
 
+    expect(screen.getByRole("heading", { name: "SpaceHub" })).toBeTruthy();
     expect(await screen.findByText("Relay Friend")).toBeTruthy();
-    expect(screen.getByText("@relay_friend")).toBeTruthy();
+    const inboxPanel = within(screen.getByLabelText("Conversation inbox"));
+    expect(inboxPanel.getByText("@relay_friend")).toBeTruthy();
     expect(
-      screen.getByRole("link", { name: "Open conversation with Relay Friend" })
+      inboxPanel.getByRole("link", {
+        name: "Open conversation with Relay Friend, 2 unread messages",
+      })
         .getAttribute("href"),
     ).toBe("/conversations/conversation-id");
+    expect(inboxPanel.getByText("Hello from the inbox")).toBeTruthy();
+    expect(inboxPanel.getByText("2 unread messages")).toBeTruthy();
+    fireEvent.change(
+      inboxPanel.getByRole("searchbox", { name: "Search conversations" }),
+      { target: { value: "Hello from the inbox" } },
+    );
+    expect(inboxPanel.getByText("Relay Friend")).toBeTruthy();
+    fireEvent.change(
+      inboxPanel.getByRole("searchbox", { name: "Search conversations" }),
+      { target: { value: "missing conversation" } },
+    );
+    expect(
+      inboxPanel.getByText("No conversations match “missing conversation”."),
+    ).toBeTruthy();
     expect(screen.queryByText("private@example.com")).toBeNull();
   });
 
