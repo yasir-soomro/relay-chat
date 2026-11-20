@@ -86,8 +86,7 @@ class MemoryConnectionRepository:
         return [
             item
             for item in self.connections.values()
-            if getattr(item, column) == user_id
-            and item.status == "pending"
+            if getattr(item, column) == user_id and item.status == "pending"
         ]
 
     async def list_accepted(self, user_id: UUID) -> list[Connection]:
@@ -274,7 +273,6 @@ async def test_remove_preserves_relationship_record_and_allows_new_request(
     assert new_request.id == request.id
     assert new_request.requester_id == second
     assert new_request.status == ConnectionStatus.PENDING
-
 
     assert not (await service.list_connections(first)).items
     accepted = await service.accept_request(new_request.id, first)
