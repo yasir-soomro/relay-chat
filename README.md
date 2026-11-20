@@ -48,9 +48,12 @@ limitations.
 
 ## Frontend specifications
 
-The approved frontend direction is Next.js App Router, TypeScript, Tailwind
-CSS, REST APIs, and WebSockets. Frontend requirements and implementation
-sequencing are documented separately:
+The frontend is a Next.js App Router application using TypeScript and Tailwind
+CSS. It includes public pages, authenticated account and connection workflows,
+theme-aware responsive layouts, and one-to-one messaging through the existing
+REST and WebSocket APIs. Messaging history is recovered through paginated REST
+requests after reconnect; the server does not replay missed WebSocket events.
+Frontend requirements and implementation sequencing are documented separately:
 
 - [Frontend Technical Specification](./docs/sdd/frontend/spec.md) — scope,
   architecture, routes, API boundaries, UX, accessibility, and open decisions.
@@ -77,6 +80,20 @@ npm run dev
 
 The frontend runs at `http://localhost:3000`.
 
+## Production readiness
+
+Deployment remains an operator-controlled step. Before deploying, configure a
+production PostgreSQL database, apply reviewed migrations, set strong secrets
+and allowed origins, and verify the hosting platform's health checks, logs,
+backups, restore process, and rollback procedure. Never use a production
+database for integration tests; `TEST_DATABASE_URL` must point to a dedicated,
+isolated test database.
+
+The current automated checks do not include Playwright browser tests. Add and
+run browser coverage for authentication, messaging, and responsive layouts
+before treating browser behavior as verified. Security dependency auditing
+requires access to the package advisory service.
+
 ## Verification
 
 Run the frontend checks from `frontend/`:
@@ -99,4 +116,12 @@ uv run pip-audit --skip-editable
 ```
 
 Repository integration tests require an isolated PostgreSQL database set in
-`TEST_DATABASE_URL`; see the [backend README](./backend/README.md).
+`TEST_DATABASE_URL`; see the [backend README](./backend/README.md). Recent
+local verification passed backend unit/API/WebSocket tests (132 passed); 17
+database integration tests were skipped because no isolated test database was
+configured. Frontend lint, TypeScript, production build, and targeted messaging
+tests passed. The full frontend suite found a mobile-navigation focus test
+assumption that has since been corrected; rerun the full suite before release.
+Backend mypy passed. Ruff formatting reports two existing formatting issues in
+tests, and the dependency audit could not reach PyPI in the restricted network
+environment. These results are diagnostic and are not a release sign-off.
