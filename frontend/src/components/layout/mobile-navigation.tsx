@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
 import { NavigationLinks } from "@/components/layout/navigation-links";
+import { SiteBrand } from "@/components/layout/site-brand";
 import { RelayIcon } from "@/components/ui/relay-icon";
 import type { SiteNavigationItem } from "@/types/site";
 import type { ReactNode, AnimationEvent } from "react";
@@ -15,7 +16,8 @@ type MobileNavigationProps = {
   actions?: ReactNode;
   ariaLabel: string;
   desktopMinWidth?: number;
-  items: readonly SiteNavigationItem[];
+  items?: readonly SiteNavigationItem[];
+  navigation?: ReactNode;
   renderIcon?: (item: SiteNavigationItem) => ReactNode;
 };
 
@@ -23,7 +25,8 @@ export function MobileNavigation({
   actions,
   ariaLabel,
   desktopMinWidth = 1024,
-  items,
+  items = [],
+  navigation,
   renderIcon,
 }: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -205,13 +208,11 @@ export function MobileNavigation({
                 ref={drawerRef}
                 role="dialog"
               >
-                <header className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
-                  <h2
-                    className="text-sm font-semibold tracking-wide text-ink"
-                    id={titleId}
-                  >
-                    {ariaLabel}
-                  </h2>
+                <header className="mobile-navigation-header flex items-center justify-between gap-4 px-5 py-4">
+                  <div className="min-w-0">
+                    <SiteBrand compact />
+                    <h2 className="sr-only" id={titleId}>{ariaLabel}</h2>
+                  </div>
                   <button
                     aria-label="Close menu"
                     className="inline-grid size-10 shrink-0 place-items-center rounded-xl text-muted transition-[background-color,color,transform] duration-150 hover:bg-soft hover:text-ink active:scale-[0.97] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -226,7 +227,7 @@ export function MobileNavigation({
 
                 <nav
                   aria-label={ariaLabel}
-                  className="mobile-navigation-links min-h-0 flex-1 overflow-y-auto px-4 py-4"
+                  className="mobile-navigation-links min-h-0 flex-1 overflow-y-auto px-4 py-2"
                   onClick={(event) => {
                     if (
                       event.target instanceof Element &&
@@ -236,11 +237,13 @@ export function MobileNavigation({
                     }
                   }}
                 >
-                  <NavigationLinks
-                    direction="vertical"
-                    items={items}
-                    renderIcon={renderIcon}
-                  />
+                  {navigation ?? (
+                    <NavigationLinks
+                      direction="vertical"
+                      items={items}
+                      renderIcon={renderIcon}
+                    />
+                  )}
                 </nav>
 
                 {actions ? (

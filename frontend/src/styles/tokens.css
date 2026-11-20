@@ -67,30 +67,30 @@
 
 :root {
   color-scheme: light;
-  --relay-ink: #0f172a;
-  --relay-muted: #475569;
-  --relay-canvas: #f8fafc;
+  --relay-ink: #17231f;
+  --relay-muted: #53635d;
+  --relay-canvas: #f7f9f8;
   --relay-surface: #ffffff;
   --relay-surface-raised: #f1f5f9;
-  --relay-line: #7c8ba0;
-  --relay-primary: #4f46e5;
-  --relay-primary-hover: #4338ca;
+  --relay-line: #d8e1dc;
+  --relay-primary: #216b55;
+  --relay-primary-hover: #185541;
   --relay-primary-foreground: #ffffff;
   --relay-danger-foreground: #ffffff;
-  --relay-secondary: #eef2ff;
-  --relay-secondary-foreground: #312e81;
-  --relay-accent: #14b8a6;
-  --relay-accent-strong: #0f766e;
-  --relay-soft: #f1f5f9;
-  --relay-focus: #4f46e5;
+  --relay-secondary: #e8f1ed;
+  --relay-secondary-foreground: #1d5543;
+  --relay-accent: #b9d9c9;
+  --relay-accent-strong: #216b55;
+  --relay-soft: #f0f4f2;
+  --relay-focus: #5a9d7d;
   --relay-danger: #b91c1c;
   --relay-danger-soft: #fef2f2;
   --relay-success: #166534;
   --relay-success-soft: #f0fdf4;
   --relay-warning: #854d0e;
   --relay-warning-soft: #fffbeb;
-  --relay-info: #1d4ed8;
-  --relay-info-soft: #eff6ff;
+  --relay-info: #216b55;
+  --relay-info-soft: #e8f1ed;
   --relay-shadow: rgb(15 23 42 / 16%);
   --relay-font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -99,29 +99,29 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --relay-ink: #f1f5f9;
-  --relay-muted: #b8c2d3;
-  --relay-canvas: #0b1120;
-  --relay-surface: #131b2e;
-  --relay-surface-raised: #1b2639;
-  --relay-line: #6a7890;
-  --relay-primary: #818cf8;
-  --relay-primary-hover: #a5b4fc;
-  --relay-primary-foreground: #0b1120;
-  --relay-danger-foreground: #0b1120;
-  --relay-secondary: #232e48;
-  --relay-secondary-foreground: #e0e7ff;
-  --relay-accent: #5eead4;
-  --relay-accent-strong: #5eead4;
-  --relay-soft: #1e293b;
-  --relay-focus: #a5b4fc;
+  --relay-ink: #eef3f0;
+  --relay-muted: #aab8b1;
+  --relay-canvas: #090c0b;
+  --relay-surface: #111614;
+  --relay-surface-raised: #191f1c;
+  --relay-line: #303a35;
+  --relay-primary: #75b898;
+  --relay-primary-hover: #91caaa;
+  --relay-primary-foreground: #08100c;
+  --relay-danger-foreground: #160909;
+  --relay-secondary: #1b2520;
+  --relay-secondary-foreground: #d7e8de;
+  --relay-accent: #345744;
+  --relay-accent-strong: #9bd0b1;
+  --relay-soft: #171d1a;
+  --relay-focus: #82c6a0;
   --relay-danger: #fda4af;
   --relay-danger-soft: #3b1e2a;
   --relay-success: #86efac;
   --relay-success-soft: #163326;
   --relay-warning: #fcd34d;
   --relay-warning-soft: #3a2d12;
-  --relay-info: #93c5fd;
-  --relay-info-soft: #192c48;
+  --relay-info: #91caaa;
+  --relay-info-soft: #1b2520;
   --relay-shadow: rgb(0 0 0 / 75%);
 }

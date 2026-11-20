@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef } from "react";
 import { MessageActions } from "@/features/messaging/components/message-actions";
 import type { MessageRecord } from "@/features/messaging/types";
 
@@ -14,6 +17,7 @@ export function MessageBubble({
   onEdit,
   onDelete,
 }: MessageBubbleProps) {
+  const longPressTimer = useRef<number | null>(null);
   const isDeleted = message.deleted_at !== null;
   const wasEdited =
     !isDeleted &&
@@ -38,6 +42,21 @@ export function MessageBubble({
             ? "rounded-br-md bg-primary text-primary-foreground"
             : "rounded-bl-md bg-surface-raised text-ink"
         }`}
+        onTouchStart={() => {
+          if (isOwn && !isDeleted) {
+            longPressTimer.current = window.setTimeout(() => {
+              document
+                .querySelector<HTMLElement>(`[data-message-id="${message.id}"] button[aria-label="Message options"]`)
+                ?.click();
+            }, 500);
+          }
+        }}
+        onTouchEnd={() => {
+          if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current);
+        }}
+        onTouchMove={() => {
+          if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current);
+        }}
       >
         {isDeleted ? (
           <p className="whitespace-pre-wrap break-words text-sm italic opacity-75">

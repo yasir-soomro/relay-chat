@@ -52,6 +52,11 @@ vi.mock("@/features/auth/providers/auth-provider", () => ({
 
 vi.mock("@/features/notifications/providers/notifications-provider", () => ({
   useOptionalNotifications: () => ({ unreadCount: 0 }),
+  useNotifications: () => ({ unreadCount: 0 }),
+}));
+
+vi.mock("@/features/connections/providers/connections-provider", () => ({
+  useConnections: () => ({ incoming: [], isLoading: false, error: null }),
 }));
 
 describe("AppNavbar", () => {
@@ -78,16 +83,17 @@ describe("AppNavbar", () => {
         .getAllByRole("link")
         .map((link) => link.textContent?.trim()),
     ).toEqual([
+      "Discover people",
+      "Requests",
       "SpaceHub",
+      "My profile",
       "Notifications",
-      "Discover",
-      "Connections",
     ]);
-    expect(within(navigation).getByRole("link", { name: "Discover" })
+    expect(within(navigation).getByRole("link", { name: "Discover people" })
       .getAttribute("aria-current")).toBe("page");
-    expect(navigation.querySelectorAll("svg")).toHaveLength(4);
+    expect(navigation.querySelectorAll("svg")).toHaveLength(5);
+    expect(within(navigation).getByRole("link", { name: "My profile" }).getAttribute("href")).toBe("/app/profile");
     const drawer = within(screen.getByRole("dialog", { name: "Application navigation" }));
-    expect(drawer.getByRole("link", { name: "My Profile" }).getAttribute("href")).toBe("/app/profile");
     expect(drawer.getByRole("button", { name: "Theme preference" })).toBeTruthy();
 
     fireEvent.keyDown(document, { key: "Escape" });

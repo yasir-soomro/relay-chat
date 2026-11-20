@@ -1,14 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
 import { PageContainer } from "@/components/layout/page-container";
-import { RelayIcon } from "@/components/ui/relay-icon";
 import { SiteBrand } from "@/components/layout/site-brand";
 import { SignOutButton } from "@/components/layout/sign-out-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { WorkspaceNavigation } from "@/components/layout/workspace-navigation";
 import { useAuth } from "@/features/auth/providers/auth-provider";
-import { appNavigation } from "@/lib/site";
 
 export function AppNavbar() {
   const { account } = useAuth();
@@ -35,19 +33,11 @@ export function AppNavbar() {
                   <span className="text-sm font-medium text-muted">Appearance</span>
                   <ThemeToggle compact />
                 </div>
-                <Link
-                  className="inline-flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-ink transition-colors hover:bg-soft focus-visible:outline-focus"
-                  href="/app/profile"
-                >
-                  <RelayIcon className="size-[1.125rem]" name="profile" />
-                  My Profile
-                </Link>
                 <SignOutButton />
               </div>
             }
             ariaLabel="Application navigation"
-            items={appNavigation.filter((item) => item.href !== "/app/profile")}
-            renderIcon={(item) => item.icon ? <RelayIcon className="size-[1.125rem]" name={item.icon} /> : null}
+            navigation={<WorkspaceNavigation />}
           />
         </div>
       </PageContainer>
