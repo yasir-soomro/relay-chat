@@ -93,12 +93,14 @@ describe("MobileNavigation", () => {
       name: "Close menu",
     });
     const lastLink = screen.getByRole("link", { name: "Sign in" });
+    const firstLink = screen.getByRole("link", { name: "Relay home" });
 
     expect(document.activeElement).toBe(closeButton);
 
     fireEvent.keyDown(lastLink, { key: "Tab" });
     expect(document.activeElement).toBe(closeButton);
-    fireEvent.keyDown(closeButton, { key: "Tab", shiftKey: true });
+    firstLink.focus();
+    fireEvent.keyDown(firstLink, { key: "Tab", shiftKey: true });
     expect(document.activeElement).toBe(lastLink);
 
     fireEvent.keyDown(document, { key: "Escape" });

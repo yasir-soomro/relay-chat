@@ -196,9 +196,7 @@ async def test_message_history_database_failure_is_safe_and_correlatable(
     app.dependency_overrides[get_current_user] = lambda: message_actor
     app.dependency_overrides[get_message_service] = FailingMessageService
 
-    response = await message_client.get(
-        f"/conversations/{uuid4()}/messages?limit=50"
-    )
+    response = await message_client.get(f"/conversations/{uuid4()}/messages?limit=50")
 
     assert response.status_code == 503
     assert response.json()["detail"] == "Database temporarily unavailable."
