@@ -5,46 +5,27 @@ import { useTheme } from "@/components/ui/theme-provider";
 
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { preference, setPreference } = useTheme();
-  const nextPreference =
-    preference === "system" ? "light" : preference === "light" ? "dark" : "system";
+  const isDark =
+    preference === "dark" ||
+    (preference === "system" &&
+      (typeof document === "undefined" ||
+        document.documentElement.dataset.theme === "dark"));
+  const nextPreference = isDark ? "light" : "dark";
 
   return (
     <Button
-      aria-label={`Theme preference: ${preference}. Activate to switch to ${nextPreference}.`}
+      aria-label={`Switch to ${nextPreference} theme`}
       className={
         compact
           ? "size-10 min-h-10 shrink-0 px-0"
           : "shrink-0 px-3"
       }
       onClick={() => setPreference(nextPreference)}
-      title={`Theme: ${preference} · switch to ${nextPreference}`}
+      title={`Switch to ${nextPreference} theme`}
       type="button"
       variant="secondary"
     >
-      {preference === "system" ? (
-        <svg
-          aria-hidden="true"
-          className="size-4"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <rect
-            height="13"
-            rx="1.5"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            width="18"
-            x="3"
-            y="3"
-          />
-          <path
-            d="M8 21h8m-4-5v5"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="1.8"
-          />
-        </svg>
-      ) : preference === "dark" ? (
+      {isDark ? (
         <svg
           aria-hidden="true"
           className="size-4"
@@ -77,7 +58,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
       )}
       {compact ? null : (
         <span className="hidden text-xs font-medium capitalize sm:inline">
-          {preference}
+          {isDark ? "Dark" : "Light"}
         </span>
       )}
     </Button>

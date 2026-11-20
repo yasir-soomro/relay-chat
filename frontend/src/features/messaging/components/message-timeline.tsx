@@ -31,6 +31,7 @@ export function MessageTimeline({
   const previousFirstMessageId = useRef("");
   const pendingScrollHeight = useRef<number | null>(null);
   const isNearBottom = useRef(true);
+  const previousMessageCount = useRef(0);
 
   useLayoutEffect(() => {
     const element = scrollContainer.current;
@@ -47,8 +48,15 @@ export function MessageTimeline({
       element.scrollTop += element.scrollHeight - pendingScrollHeight.current;
       pendingScrollHeight.current = null;
     } else if (isNearBottom.current) {
-      element.scrollTop = element.scrollHeight;
+      const behavior =
+        previousMessageCount.current === messages.length ? "auto" : "smooth";
+      if (typeof element.scrollTo === "function") {
+        element.scrollTo({ top: element.scrollHeight, behavior });
+      } else {
+        element.scrollTop = element.scrollHeight;
+      }
     }
+    previousMessageCount.current = messages.length;
     previousFirstMessageId.current = firstMessageId;
 
     if (!isLoadingOlder && pendingScrollHeight.current !== null) {
@@ -109,6 +117,8 @@ export function MessageTimeline({
         </div>
       ) : (
         <ol
+          aria-live="polite"
+          aria-relevant="additions"
           aria-label="Messages, oldest first"
           className="messages-timeline-list mt-auto flex min-w-0 flex-col gap-2.5"
         >

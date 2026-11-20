@@ -255,7 +255,8 @@ describe("ConversationDetailPage", () => {
       null,
     );
     render(<ConversationDetailPage conversationId="conversation-id" />);
-    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Message options" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Edit" }));
 
     const edit = screen.getByRole("textbox", { name: "Edit message" });
     fireEvent.change(edit, { target: { value: "Updated message" } });
@@ -263,7 +264,9 @@ describe("ConversationDetailPage", () => {
     expect(await screen.findByText("Updated message")).toBeTruthy();
     expect(screen.getByText("Edited")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Message options" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+    expect(screen.getByRole("alertdialog", { name: "Confirm message deletion" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
     expect(await screen.findByText("Message deleted")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();

@@ -27,7 +27,7 @@ describe("theme preference", () => {
     document.documentElement.dataset.theme = "light";
   });
 
-  it("cycles through and persists System, Light, and Dark preferences", async () => {
+  it("toggles between Light and Dark while persisting through the provider", async () => {
     render(
       <ThemeProvider>
         <ThemeToggle />
@@ -36,7 +36,7 @@ describe("theme preference", () => {
     );
 
     const toggles = await screen.findAllByRole("button", {
-      name: "Theme preference: system. Activate to switch to light.",
+      name: "Switch to dark theme",
     });
     const firstToggle = toggles[0];
     if (!firstToggle) {
@@ -44,30 +44,16 @@ describe("theme preference", () => {
     }
     fireEvent.click(firstToggle);
 
-    expect(document.documentElement.dataset.themePreference).toBe("light");
-    expect(document.documentElement.dataset.theme).toBe("light");
-    expect(window.localStorage.getItem("relay-theme")).toBe("light");
-    fireEvent.click(
-      screen.getAllByRole("button", {
-        name: "Theme preference: light. Activate to switch to dark.",
-      })[0]!,
-    );
-
     expect(document.documentElement.dataset.themePreference).toBe("dark");
     expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(
-      screen.getAllByRole("button", {
-        name: "Theme preference: dark. Activate to switch to system.",
-      }),
-    ).toHaveLength(2);
-
+    expect(window.localStorage.getItem("relay-theme")).toBe("dark");
     fireEvent.click(
-      screen.getAllByRole("button", {
-        name: "Theme preference: dark. Activate to switch to system.",
-      })[0]!,
+      screen.getAllByRole("button", { name: "Switch to light theme" })[0]!,
     );
-    expect(document.documentElement.dataset.themePreference).toBe("system");
-    expect(window.localStorage.getItem("relay-theme")).toBe("system");
+
+    expect(document.documentElement.dataset.themePreference).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(screen.getAllByRole("button", { name: "Switch to dark theme" })).toHaveLength(2);
   });
 
   it("follows operating system changes while the preference is System", () => {
