@@ -44,3 +44,5 @@ dev = [
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]
+[tool.vercel]
+entrypoint = "src.backend.main:app"
