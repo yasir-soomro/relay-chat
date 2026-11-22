@@ -1,10 +1,9 @@
 # Relay frontend
 
 The Relay frontend is a Next.js App Router application built with TypeScript
-and Tailwind CSS. It includes a responsive public landing page and reusable
-public and application layout shells, plus login and registration forms backed
-by the existing authentication API. Messaging and WebSockets are not
-implemented.
+and Tailwind CSS. It includes responsive public pages, authentication,
+connection and discovery workflows, profile management, notifications, and
+one-to-one messaging backed by the Relay REST and WebSocket APIs.
 
 ## Requirements
 
@@ -26,9 +25,10 @@ The development server reloads when source files change.
 
 ## Authentication setup
 
-The frontend forwards `/auth/*` requests to the backend without exposing the
-backend origin in browser code. Set `RELAY_API_ORIGIN` in `frontend/.env.local`
-if the backend is not at `http://127.0.0.1:8000`. Configure the backend's
+The frontend forwards API requests to the backend without exposing the backend
+origin in browser code. Set `RELAY_API_ORIGIN` in `frontend/.env.local` (or the
+frontend hosting environment) if the backend is not at
+`http://127.0.0.1:8000`. Configure the backend's
 `AUTH_ALLOWED_ORIGINS` to include the exact frontend origin, for example
 `http://localhost:3000`, so login requests pass the backend origin check.
 Configure a private `AUTH_JWT_SECRET` of at least 32 bytes in the backend
@@ -41,6 +41,13 @@ access tokens before expiry and retries an authenticated request once after a
 401 response. The `/app` route waits for session verification and redirects
 unauthenticated visitors to `/login`; backend endpoints must still enforce
 authorization independently.
+
+Messaging uses a same-origin `/ws` connection and REST requests for message
+history and offline recovery. In production, route `/ws` through an ingress or
+reverse proxy that supports WebSocket upgrades and forwards it to the backend;
+set `RELAY_API_ORIGIN` to the backend origin for the frontend's REST rewrites.
+Run a single backend process/instance unless shared WebSocket coordination is
+added, since live connections are held in process memory.
 
 ## Checks and production
 
